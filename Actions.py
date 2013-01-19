@@ -13,6 +13,7 @@ class ActionResponder(object):
         self.socket = socket
     def do(self, action, arg):
         self.funcs[action](arg)
+    
     def _return_action(self, action):
         # Action should be a string, all caps, from legal actions)
         self.socket.send(action+"\n")
@@ -53,9 +54,19 @@ class Parser(object):
             self.fields['numBoardCards'] = word[2]
             tempBC=int(self.fields['numBoardCards'])
             self.fields['boardCards']=word[3:3+tempBC]
+            
             self.fields['numLastActions']=word[3+tempBC]
             tempLast=int(self.fields['numLastActions'])
             self.fields['lastActions']=word[4+tempBC:4+tempBC+tempLast]
+            
+            self.fields['lastActionsSplit']=[action.split(':') for action in self.fields['lastActions']]
+            
+            for action in self.fields['lastActions']:
+                self.fields['handHistory'].append(action)
+            
+            for action in self.fields['lastActionsSplit']:
+                self.fields['handHistorySplit'].append(action)
+            
             self.fields['numLegalActions']=word[4+tempBC+tempLast]
             tempLegal=int(self.fields['numLegalActions'])
             ugly_action_array = word[5+tempBC+tempLast:5+tempBC+tempLast+tempLegal]
@@ -75,7 +86,9 @@ class Parser(object):
                 if 'RAISE' in action:
                     raiseSplit = action.split(':')
                     legals['RAISE'] = {'MIN':raiseSplit[1],'MAX':raiseSplit[2]}
-            self.fields['legalActions'] = legals # assigned seperately for some reason I forget
+            self.fields['legalActions'] = legals
+        
+        
             timeBank = word[-1]
         elif word[0] == "NEWHAND":
             self.fields['action'] = "NEWHAND"
@@ -87,17 +100,31 @@ class Parser(object):
             yourBank = word[6]
             oppBank = word[7]
             timeBank = word[8]
+                
+            self.fields['handHistory'] = []
+            self.fields['handHistorySplit']=[]
         #preFlopHand(holeCard3,holeCard2,holeCard1)
         elif word[0] == "HANDOVER":
             self.fields['action'] = "HANDOVER"
             yourBank= word[1]
             oppBank = word[2]
+            
             self.fields['numBoardCards'] = word[3]
             tempBC = int(self.fields['numBoardCards'])
             self.fields['boardCards'] = word[4:4+tempBC]
+            
             self.fields['numLastActions'] = word[4+tempBC]
             tempLast = int(self.fields['numLastActions'])
             self.fields['lastActions'] = word[5+tempBC:5+tempBC+tempLast]
+            
+            self.fields['lastActionsSplit']=[action.split(':') for action in self.fields['lastActions']]
+            
+            for action in self.fields['lastActions']:
+                self.fields['handHistory'].append(action)
+            
+            for action in self.fields['lastActionsSplit']:
+                self.fields['handHistorySplit'].append(action)
+            
             timeBank = word[-1]
         elif word[0] == "KEYVALUE":
             self.fields['action'] = word[0]

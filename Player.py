@@ -20,7 +20,7 @@ class Player(object):
     def __init__(self):
         self.fields = {'selectedCard1':None, 'selectedCard2': None,
         'burnedCard_is' : None,
-         'boardCards': None,
+        'boardCards': None,
         'holeCard1' : None,
         'holeCard2' : None,
         'holeCard3' : None,
@@ -33,7 +33,10 @@ class Player(object):
         'numBoardCards' : None,
         'raise_counter' : None,
         'keep_percent': 0.60,
-        'action':None}
+        'action':None,
+        'lastActionsSplit': None,
+        'handHistory': None,
+        'handHistorySplit': None}
         self.respond = Actions.ActionResponder(s)
         self.analysis = PyAnalyzer.Analyzer()
         self.parser = Actions.Parser(self.fields) # load classes once
@@ -63,8 +66,8 @@ class Player(object):
             #       ACTIONS BLOCK           #
             #################################
             action = self.fields['action']
-        
-            print self.fields, 'ffff'
+            
+        #print self.fields, 'ffff'
             if action == "GETACTION":
                 self.strategy.simple_betting()
             elif action == "REQUESTKEYVALUES":
