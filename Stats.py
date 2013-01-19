@@ -1,9 +1,10 @@
 """
 Stats provides a Tracker class which is a way to track oponent actions (fold, all in, raise, call) at all states( pre/post flop, turn, river).
+Make 2 instances, one for has button, one for does not have button.
 --Written By Jeremy Rubin --
 -- Jan 18th 2013 --
     
-API:
+API:/Users/jeremyrubin/Desktop/MIT/Pokerbots/pythonbot 2/pokerbots2013/Player.py
     # wraps the states for button/nobutton
     # call like this
     # myStats = Stats()
@@ -32,7 +33,7 @@ API:
 ######################################
 
 class Tracker(object):
-    def __init__():
+    def __init__(self):
         # Objects to hold shit! #
         self.hands = 0
         self.r = [0,0,0,0] # raise [raises, amount, raises%,amount_avg ]
