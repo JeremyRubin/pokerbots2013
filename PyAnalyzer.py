@@ -385,7 +385,7 @@ class Analyzer(object):
         a_lowest = (a_val < c_val) and (a_val < b_val)
         b_lowest = (b_val < a_val) and (b_val < c_val)
         c_lowest = (c_val < a_val) and (c_val < b_val)
-        print a_lowest, b_lowest, c_lowest
+        #print a_lowest, b_lowest, c_lowest
         if c_lowest:
             return 1
         elif a_lowest:

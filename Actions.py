@@ -50,7 +50,7 @@ class Parser(object):
         word = data.split()
         if word[0] == "GETACTION":
             self.fields['action'] = "GETACTION"
-            potSize = word[1]
+            self.fields['potSize'] = int(word[1])
             self.fields['numBoardCards'] = word[2]
             tempBC=int(self.fields['numBoardCards'])
             self.fields['boardCards']=word[3:3+tempBC]
@@ -74,7 +74,7 @@ class Parser(object):
             for action in ugly_action_array:
                 if 'BET' in action:
                     betSplit = action.split(':')
-                    legals['BET'] = {'MAX':betSplit[1],'MIN':betSplit[2]}
+                    legals['BET'] = {'MIN':betSplit[1],'MAX':betSplit[2]}
                 if 'CALL' in action:
                     legals['CALL'] = True
                 if 'CHECK' in action:
@@ -92,7 +92,7 @@ class Parser(object):
             timeBank = word[-1]
         elif word[0] == "NEWHAND":
             self.fields['action'] = "NEWHAND"
-            handId = word[1]
+            self.fields['handId'] = word[1]
             self.fields['button'] = word[2]
             self.fields['holeCard1'] = word[3]
             self.fields['holeCard2'] = word[4]
@@ -132,10 +132,10 @@ class Parser(object):
             value = word[2]
         elif word[0] == "NEWGAME":
             self.fields['action'] = word[0]
-            yourName = word[1]
-            oppName = word[2]
-            stackSize = word[3]
-            self.fields['bb'] = word[4]
+            self.fields['yourName'] = word[1]
+            self.fields['oppName'] = word[2]
+            self.fields['stackSize'] = int(word[3])
+            self.fields['bb'] = int(word[4])
             numHands = word[5]
             timeBank = word[6]
         elif word[0] == "REQUESTKEYVALUES":

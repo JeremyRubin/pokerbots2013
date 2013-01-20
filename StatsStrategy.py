@@ -26,7 +26,7 @@ class Strategy(object):
         lowcard = inverted_value_dict[value_array[0]]
         analysis = self.analyzer.burn_which_card_simple(boardCards, holeCard1, holeCard2, holeCard3)
         if analysis == 'lowcard':
-            print a[0], b[0], c[0]
+            #print a[0], b[0], c[0]
             if a[0] == lowcard:
                self.responder.do('DISCARD', holeCard1)
             elif b[0] == lowcard:
@@ -52,7 +52,10 @@ class Strategy(object):
         percent = 300
         betPercent = str(percent*int(self.data['bb'])/100)
         
-        self.responder.do('BET', betPercent)
+        if 'RAISE' in self.data['legalActions']:
+            self.responder.do('RAISE', betPercent)
+        elif 'BET' in self.data[legalActions]:
+            self.responder.do('BET', betPercent)
 
     # Will raise minimum amount, or will go/call all in
     def raise_min(self):
@@ -80,10 +83,10 @@ class Strategy(object):
     def pbots_calc_clean(self,handlist,boardlist,discarded):
         
         # set for 100 Monte Carlo iterations
-        d1 = datetime.now()
+        #d1 = datetime.now()
         oddslist = str(pbots_calc.calc(handlist,boardlist,discarded,100))
-        d2 = datetime.now()
-        print d2-d1
+        #d2 = datetime.now()
+        #print d2-d1
         oddslist = list(oddslist)
         for char in oddslist:
             if char in ["[","]","(",")",","," "]:
@@ -104,9 +107,8 @@ class Strategy(object):
         handlist = self.data['holeCard1']+self.data['holeCard2']+self.data['holeCard3']
         handlist = handlist.lower()
         oddslist = self.pbots_calc_clean(handlist+':xx','','')
-        print self.data['keep_percent']
         # generate the keep_hand boolean, determined by class variable keep_percent
-        if (float(oddslist[1])>= 1-0):
+        if (float(oddslist[1])>= 1.0-self.data['keep_percent']):
             return True
         else:
             return False
@@ -117,7 +119,7 @@ class Strategy(object):
 
     # Basic pre-flop 3-betting based on button
     def preflop_3bet(self):
-        lastActions = self.data['lastActions']
+        lastActionsSplit = self.data['lastActionsSplit']
         button = self.data['button']
         raise_counter = self.data['raise_counter']
         ###### keep_hand is a boolean determining whether we bet or not, determined by analyzing stats ######
@@ -127,15 +129,14 @@ class Strategy(object):
         ###### ev_call is a boolean that compares chance to win hand against pot odds
         # if ev_call:
         
-        
         # raise a certain percent to start off betting
-        if lastActions[-1][0] == 'POST' and keep_hand:
+        if lastActionsSplit[-1][0] == 'POST' and keep_hand:
             #print 'Making the initial bet now'
-            increment_raises()
-            bet_percent()
+            self.increment_raises()
+            self.bet_percent()
         
         # make the 3-bet if we have button and only raised once, else call
-        elif (lastActions[-1][0] == 'RAISE' and button == 'true') and keep_hand:
+        elif (lastActionsSplit[-1][0] == 'RAISE' and button == 'true') and keep_hand:
             if raise_counter == 1:
                 #print 'Making the 3 bet now:'
                 self.raise_min()
@@ -144,9 +145,10 @@ class Strategy(object):
                 self.responder.do('CALL', None)
         
         # prevent the 3-bet in we don't have button
-        elif (lastActions[-1][0] == 'RAISE' and button != 'true') and keep_hand:
+        elif (lastActionsSplit[-1][0] == 'RAISE' and button != 'true') and keep_hand:
             #print 'Dont have the button, so are calling'
-            self.responder.do('CALL', None)
+            #self.responder.do('CALL', None)
+            self.raise_min()
         
         # fold if we choose to not keep hand
         elif not keep_hand:
