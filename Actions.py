@@ -1,118 +1,156 @@
-class Actions():
+""""
+Implements data parsing functions!
     
-    def __init__(self):
-        self.canBet = [False, 'BET', 0, 0]
-        self.canCall = [False, 'CALL']
-        self.canCheck = [False, 'CHECK']
-        self.canDiscard = [False, 'DISCARD']
-        self.canFold = [False, 'FOLD']
-        self.canRaise = [False, 'RAISE', 0, 0]
-        self.hand_history_actions = []
-        self.recent_actions = []
-        self.potSize='0'
-
-    def setLegalActions(self,legalActions):
-        for action in legalActions:
-            if 'BET' in action:
-                self.canBet[0] = True
-                betSplit = action.split(':')
-                self.canBet[2] = betSplit[1]
-                self.canBet[3] = betSplit[2]
-            if 'CALL' in action:
-                self.canCall[0] = True
-            if 'CHECK' in action:
-                self.canCheck[0] = True
-            if 'DISCARD' in action:
-                self.canDiscard[0] = True
-            if 'FOLD' in action:
-                self.canFold[0] = True
-            if 'RAISE' in action:
-                self.canRaise[0] = True
-                raiseSplit = action.split(':')
-                self.canRaise[2] = raiseSplit[1]
-                self.canRaise[3] = raiseSplit[2]
-
-    def getLegalActions(self):
-        return [self.canBet, self.canCall, self.canCheck, self.canDiscard, self.canFold, self.canRaise]
-
-    def setLastActions(self,lastActions):
-        self.recent_actions = [action.split(':') for action in lastActions]
-        for action in self.recent_actions:
-            self.hand_history_actions.append(action)
-
-    def getRecentActions(self):
-        return self.recent_actions
-
-    def getHandHistory(self):
-        return self.hand_history_actions
-
-    def setPotSize(self,potSize):
-        self.potSize = potSize
-
-    def getPotSize(self):
-        return self.potSize
-
-    ######### Simple Response Functions ########
-
-    # Sends action to engine
-    def return_action(action):
+Class-ified Jan 19th by Jeremy
+Originally Written By Justin
+    
+"""
+class ActionResponder(object):
+    def __init__(self, socket):
+        self.funcs = {'DISCARD':self._discard,'BET':self._bet,\
+                      'RAISE':self._raise, 'CALL':self._call,\
+                      'FOLD':self._fold,'CHECK':self._check}
+        self.socket = socket
+    def do(self, action, arg):
+        self.funcs[action](arg)
+    
+    def _return_action(self, action):
         # Action should be a string, all caps, from legal actions)
-        s.send(action+"\n")
-
+        self.socket.send(action+"\n")
+    
     # Use this after flop analysis function to discard a card
-    def discard(card):
-        print card
+    def _discard(self, card):
         ## Card must be a string
-        return_action('DISCARD:'+card)
-
+        self._return_action('DISCARD:'+str(card))
+    
     # Use this to fold
-    def fold():
-        return_action('FOLD')
-
+    def _fold(self, ignore):
+        self._return_action('FOLD')
+    
     # Use this to call
-    def call():
-        return_action('CALL')
-
+    def _call(self, ignore):
+        self._return_action('CALL')
+    
     # Use this to check
-    def check():
-        return_action('CHECK')
-
+    def _check(self, ignore):
+        self._return_action('CHECK')
+    
     # Use this to bet/raise
-    def bet_raise(amount):
-        if Player.possible_responses[0][0]:
-            return_action('BET:'+str(amount))
-        elif Player.possible_responses[5][0]:
-            return_action('RAISE:'+str(amount))
+    def _raise(self, amount):
+        self._return_action('RAISE:'+str(amount))
+    def _bet(self, amount):
+        self._return_action('BET:'+str(amount))
 
-    ## Very basic card discarder; always dumps the lowest card
-    def discard_low():
-        a = list(Player.holeCard1)
-        b = list(Player.holeCard2)
-        c = list(Player.holeCard3)
+
+class Parser(object):
+    #Shitload of of fields!
+    def __init__(self,fields):
+        self.fields = fields
+    def parse(self, data):  #main parser, processes DATA.
+        word = data.split()
+        if word[0] == "GETACTION":
+            self.fields['action'] = "GETACTION"
+            self.fields['potSize'] = int(word[1])
+            self.fields['numBoardCards'] = word[2]
+            tempBC=int(self.fields['numBoardCards'])
+            self.fields['boardCards']=word[3:3+tempBC]
+            
+            self.fields['numLastActions']=word[3+tempBC]
+            tempLast=int(self.fields['numLastActions'])
+            self.fields['lastActions']=word[4+tempBC:4+tempBC+tempLast]
+            
+            self.fields['lastActionsSplit']=[action.split(':') for action in self.fields['lastActions']]
+            
+            for action in self.fields['lastActions']:
+                self.fields['handHistory'].append(action)
+            
+            for action in self.fields['lastActionsSplit']:
+                self.fields['handHistorySplit'].append(action)
+            
+            self.fields['numLegalActions']=word[4+tempBC+tempLast]
+            tempLegal=int(self.fields['numLegalActions'])
+            ugly_action_array = word[5+tempBC+tempLast:5+tempBC+tempLast+tempLegal]
+            legals = {}
+            for action in ugly_action_array:
+                if 'BET' in action:
+                    betSplit = action.split(':')
+                    legals['BET'] = {'MIN':betSplit[1],'MAX':betSplit[2]}
+                if 'CALL' in action:
+                    legals['CALL'] = True
+                if 'CHECK' in action:
+                    legals['CHECK'] = True
+                if 'DISCARD' in action:
+                    legals['DISCARD'] = True
+                if 'FOLD' in action:
+                    legals['FOLD'] = True
+                if 'RAISE' in action:
+                    raiseSplit = action.split(':')
+                    legals['RAISE'] = {'MIN':raiseSplit[1],'MAX':raiseSplit[2]}
+            self.fields['legalActions'] = legals
         
-        value_dict = {'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'T':10,'J':11,'Q':12,'K':13,'A':14}
-        inverted_value_dict = dict([[v,k] for k,v in value_dict.items()])
-        value_array = [value_dict[a[0]] ,value_dict[b[0]],value_dict[c[0]]]
-        value_array.sort()
-        lowcard = inverted_value_dict[value_array[0]]
         
+            timeBank = word[-1]
+        elif word[0] == "NEWHAND":
+            self.fields['action'] = "NEWHAND"
+            self.fields['handId'] = word[1]
+            self.fields['button'] = word[2]
+            self.fields['holeCard1'] = word[3]
+            self.fields['holeCard2'] = word[4]
+            self.fields['holeCard3'] = word[5]
+            yourBank = word[6]
+            oppBank = word[7]
+            timeBank = word[8]
+                
+            self.fields['handHistory'] = []
+            self.fields['handHistorySplit']=[]
+        #preFlopHand(holeCard3,holeCard2,holeCard1)
+        elif word[0] == "HANDOVER":
+            self.fields['action'] = "HANDOVER"
+            yourBank= word[1]
+            oppBank = word[2]
+            
+            self.fields['numBoardCards'] = word[3]
+            tempBC = int(self.fields['numBoardCards'])
+            self.fields['boardCards'] = word[4:4+tempBC]
+            
+            self.fields['numLastActions'] = word[4+tempBC]
+            tempLast = int(self.fields['numLastActions'])
+            self.fields['lastActions'] = word[5+tempBC:5+tempBC+tempLast]
+            
+            self.fields['lastActionsSplit']=[action.split(':') for action in self.fields['lastActions']]
+            
+            for action in self.fields['lastActions']:
+                self.fields['handHistory'].append(action)
+            
+            for action in self.fields['lastActionsSplit']:
+                self.fields['handHistorySplit'].append(action)
+            
+            timeBank = word[-1]
+        elif word[0] == "KEYVALUE":
+            self.fields['action'] = word[0]
+            key = word[1]
+            value = word[2]
+        elif word[0] == "NEWGAME":
+            self.fields['action'] = word[0]
+            self.fields['yourName'] = word[1]
+            self.fields['oppName'] = word[2]
+            self.fields['stackSize'] = int(word[3])
+            self.fields['bb'] = int(word[4])
+            numHands = word[5]
+            timeBank = word[6]
+        elif word[0] == "REQUESTKEYVALUES":
+            self.fields['action'] = word[0]
+            bytesLeft = word[1]
+        return self.fields
+    # TODO:######################
+"""
+    def get_last_actions(self,lastActions):
+        i = 0
+        actionList = lastActions[:]
+        for action in lastActions:
+            actionSplit = action.split(':')
+            actionList[i] = actionSplit
+            i += 1
+        return actionList
 
-        analysis = analysis_engine.burn_which_card_simple(Player.boardCards, Player.holeCard1,Player.holeCard2,Player.holeCard3)
-
-        if analysis == 'lowcard':
-            print a[0], b[0], c[0]
-            if a[0] == lowcard:
-                discard(Player.holeCard1)
-            elif b[0] == lowcard:
-                discard(Player.holeCard2)
-            elif c[0] == lowcard:
-                discard(Player.holeCard3)
-        else:
-            choices = { 1: Player.holeCard1, 2:Player.holeCard2, 3:Player.holeCard3}
-            ar = [Player.holeCard1,Player.holeCard2,Player.holeCard3]
-            Player.burnedCard_is = ar.pop(analysis-1)
-            Player.selectedCard1 = ar.pop()
-            Player.selectedCard2 = ar.pop()
-            discard(choices[analysis])
-
-
+"""
