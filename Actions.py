@@ -70,11 +70,12 @@ class Parser(object):
             self.fields['numLegalActions']=word[4+tempBC+tempLast]
             tempLegal=int(self.fields['numLegalActions'])
             ugly_action_array = word[5+tempBC+tempLast:5+tempBC+tempLast+tempLegal]
-            legals = {}
+            
+            legals = {'BET':{'True':False},'CALL':False,'CHECK':False,'DISCARD':False,'FOLD':False,'RAISE':{'True':False}}
             for action in ugly_action_array:
                 if 'BET' in action:
                     betSplit = action.split(':')
-                    legals['BET'] = {'MIN':betSplit[1],'MAX':betSplit[2]}
+                    legals['BET'] = {'True':True,'MIN':betSplit[1],'MAX':betSplit[2]}
                 if 'CALL' in action:
                     legals['CALL'] = True
                 if 'CHECK' in action:
@@ -85,7 +86,8 @@ class Parser(object):
                     legals['FOLD'] = True
                 if 'RAISE' in action:
                     raiseSplit = action.split(':')
-                    legals['RAISE'] = {'MIN':raiseSplit[1],'MAX':raiseSplit[2]}
+                    legals['RAISE'] = {'True':True,'MIN':raiseSplit[1],'MAX':raiseSplit[2]}
+
             self.fields['legalActions'] = legals
         
         

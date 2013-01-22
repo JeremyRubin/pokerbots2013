@@ -71,6 +71,7 @@ class Player(object):
             #       ACTIONS BLOCK           #
             #################################
             action = self.fields['action']
+
             
         #print self.fields, 'ffff'
             if action == "GETACTION":
@@ -78,10 +79,6 @@ class Player(object):
             if action == "HANDOVER":
                 self.strategy.stats.endOfHandUpdate(self.fields)
             elif action == "REQUESTKEYVALUES":
-                print self.strategy.stats.nobutton.preFlop.read()
-                print self.strategy.stats.nobutton.postFlop.read()
-                print self.strategy.stats.button.preFlop.read()
-                print self.strategy.stats.button.postFlop.read()
                 # At the end, the engine will allow your bot save key/value pairs.
                 # Send FINISH to indicate you're done.
                 s.send("FINISH\n")

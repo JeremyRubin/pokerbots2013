@@ -119,7 +119,7 @@ class Strategy(object):
         
         # set for 100 Monte Carlo iterations
         #d1 = datetime.now()
-        oddslist = str(pbots_calc.calc(handlist,boardlist,discarded,100))
+        oddslist = str(pbots_calc.calc(handlist,boardlist,discarded,1000))
         #d2 = datetime.now()
         #print d2-d1
         oddslist = list(oddslist)
@@ -285,8 +285,11 @@ class Strategy(object):
 
     def counter_betting(self):
     
+        
         lastActionsSplit = self.data['lastActionsSplit']
         currentStats = self.setBettingStateStats()
+        
+        
         unpredictableRoll = random.randint(1,101)/100.0 # not implemented yet
         raiseRoll = random.randint(1,101)/100.0
         checkRoll = random.randint(1,101)/100.0
@@ -299,25 +302,25 @@ class Strategy(object):
             
         else:
             self.aggro.setStrategy(currentStats)
-            print self.aggro.AggroMod
-            print self.aggro.LooseMod
 
         keep_hand = self.keep_hand_check()
         
-        if 'DISCARD' in self.data['legalActions']:
+        if self.data['legalActions']['DISCARD']:
+            
             self.discard_low()
     
-        if keep_hand:
+        elif keep_hand:
             if raiseRoll <= self.aggro.AggroMod['raiseFreq']:
                 self.aggroRaise() 
             else:
-                if 'CALL' in self.data['legalActions']:
+                if self.data['legalActions']['CALL']:
                     self.responder.do('CALL', None)
                 else:
                     self.responder.do('CHECK', None)
 
         else:
-            if 'FOLD' in self.data['legalActions']:
+            
+            if self.data['legalActions']['FOLD']:
                 self.responder.do('FOLD', None)
             else:
                 self.responder.do('CHECK', None)
@@ -333,21 +336,20 @@ class Strategy(object):
     
         legalActions = self.data['legalActions']
         
-        if 'RAISE' in self.data['legalActions']:
+        if self.data['legalActions']['RAISE']['True']:
             amount = self.aggro.AggroMod['raiseLevel'] * int(legalActions['RAISE']['MIN'])
-            if amount > legalActions['RAISE']['MAX']:
+            if amount > int(legalActions['RAISE']['MAX']):
                 self.responder.do('RAISE',legalActions['RAISE']['MAX'])
             else:
                 self.responder.do('RAISE',str(amount))
             
-        elif 'BET' in self.data['legalActions']:
+        elif self.data['legalActions']['BET']['True']:
             amount = self.aggro.AggroMod['raiseLevel'] * int(legalActions['BET']['MIN'])
-            if amount > legalActions['BET']['MAX']:
-                self.responder.do('RAISE',legalActions['RAISE']['MAX'])
+            if amount > int(legalActions['BET']['MAX']):
+                self.responder.do('BET',legalActions['BET']['MAX'])
             else:
                 self.responder.do('BET',str(amount))
         else:
-            print 'Calling in aggroRaise'
             self.responder.do('CALL',None)
 
             
@@ -459,9 +461,9 @@ class AggroModifiers(object):
             
             self.loose2 = {
             'keep_percent_preflop': 0.70,
-            'keep_percent_flop': 0.60,
-            'keep_percent_turn': 0.55,
-            'keep_percent_river': 0.50}
+            'keep_percent_flop': 0.65,
+            'keep_percent_turn': 0.60,
+            'keep_percent_river': 0.55}
             
             self.loose3 = {
             'keep_percent_preflop': 0.75,
