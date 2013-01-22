@@ -32,7 +32,6 @@ class Player(object):
         'last_actions' : None,
         'numBoardCards' : None,
         'raise_counter' : None,
-        'keep_percent': 0.60,
         'action':None,
         'lastActionsSplit': None,
         'handHistory': None,
@@ -44,9 +43,9 @@ class Player(object):
         'potSize': None}
         self.respond = Actions.ActionResponder(s)
         self.analysis = PyAnalyzer.Analyzer()
-        self.parser = Actions.Parser(self.fields) # load classes once
-        self.strategy = StatsStrategy.Strategy(self.respond, self.analysis, self.fields)
-        self.stats = Stats()
+        self.parser = Actions.Parser(self.fields)
+        self.stats = Stats() # load classes once
+        self.strategy = StatsStrategy.Strategy(self.respond, self.analysis, self.fields,self.stats)
     def run(self, input_socket):
         # Get a file-object for reading packets from tde socket.
         # Using this ensures that you get exactly one packet per read.
@@ -75,14 +74,14 @@ class Player(object):
             
         #print self.fields, 'ffff'
             if action == "GETACTION":
-                self.strategy.simple_betting()
+                self.strategy.counter_betting()
             if action == "HANDOVER":
-                self.stats.endOfHandUpdate(self.fields)
+                self.strategy.stats.endOfHandUpdate(self.fields)
             elif action == "REQUESTKEYVALUES":
-                print self.stats.nobutton.preFlop.read()
-                print self.stats.nobutton.postFlop.read()
-                print self.stats.button.preFlop.read()
-                print self.stats.button.postFlop.read()
+                print self.strategy.stats.nobutton.preFlop.read()
+                print self.strategy.stats.nobutton.postFlop.read()
+                print self.strategy.stats.button.preFlop.read()
+                print self.strategy.stats.button.postFlop.read()
                 # At the end, the engine will allow your bot save key/value pairs.
                 # Send FINISH to indicate you're done.
                 s.send("FINISH\n")

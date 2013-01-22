@@ -1,1 +1,3 @@
-python /Users/jlmart88/Desktop/6.S912/pokerbots2013/Player.py "$@"
+#!/bin/sh
+export LD_LIBRARY_PATH=`pwd`/export/linux2/lib:$LD_LIBRARY_PATH
+python Player.py "$@"

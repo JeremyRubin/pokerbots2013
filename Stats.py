@@ -45,6 +45,11 @@ class Tracker(object):
         self.opts  = {'cont_bet':self._cont_bet, 'three_bet': self._three_bet, 'call': self._call, 'fold':self._fold,\
                             'all_in':self._all_in, 'raiser':self._raiser, 'check':self._check, 'increment':property(self._increment)}
                             # anything we can call
+
+    
+
+        # Set up aggro level tracking
+        self.aggroStats = AggressionStats()
     
                 #########################################
                 #  CALCULATE     STATS(Priva            #
@@ -57,7 +62,7 @@ class Tracker(object):
     def _increment(self, action):
         if action:
             self.hands +=1
-    
+
     
 ######  RAISE
     @property
@@ -82,7 +87,8 @@ class Tracker(object):
     def _all_in(self, all_in): # count all_ins
         if(all_in): # if op goes all in
             self.ai[0] += 1 # increment our number
-        self.ai[1] = 1.0*self.ai[0]/self.hands # update percent
+        if self.ai[0] != 0:
+            self.ai[1] = 1.0*self.ai[0]/self.hands # update percent
 
 #######  FOLD
     @property
@@ -93,7 +99,8 @@ class Tracker(object):
     def _fold(self, folded):
         if(folded):
             self.f[0] += 1
-        self.f[1] = 1.0*self.f[0]/self.hands
+        if self.f[0] != 0:
+            self.f[1] = 1.0*self.f[0]/self.hands
 ##### CALL
     @property
     def _call(self):
@@ -102,7 +109,8 @@ class Tracker(object):
     def _call(self, called):
         if(called):
             self.c[0] += 1
-        self.c[1] = 1.0*self.c[0]/self.hands
+        if self.c[0] != 0:
+            self.c[1] = 1.0*self.c[0]/self.hands
 ##### CHECK
     @property
     def _check(self):
@@ -111,7 +119,8 @@ class Tracker(object):
     def _check(self, checked):
         if(checked):
             self.ch[0] += 1
-        self.ch[1] = 1.0*self.ch[0]/self.hands
+        if self.ch[0] != 0:
+            self.ch[1] = 1.0*self.ch[0]/self.hands
 ########  3 Bet
     @property
     def _three_bet(self):
@@ -178,6 +187,7 @@ class Tracker(object):
                             self.update([['three_bet', action[1]]])
                         
                 elif action[0] == 'BET':
+                    self.update([['raiser', action[1]]])
                     self.raise_count += 1
                     scraper.put_in_pot += int(action[1])
             
@@ -197,6 +207,8 @@ class Tracker(object):
                 self.update([['cont_bet', actions[2][1]]])
 
         scraper.previous_raise_count = self.raise_count
+
+        self.aggroStats.setLevels(self.read(),scraper,actions)
         
 
 
@@ -211,7 +223,7 @@ class Tracker(object):
             ####self.opts[update[0]](update[1])
             if update[0] == 'cont_bet':
                 self._cont_bet = update[1]
-            if update[0] == 'three_bet':
+            elif update[0] == 'three_bet':
                 self._three_bet = update[1]
             elif update[0] == 'call':
                 self._call = update[1]
@@ -237,7 +249,9 @@ class Tracker(object):
         f = self._raiser
         g = self._check
         h = self._increment
-        return {'cont_bet': a, 'three_bet': b, 'call': c, 'fold':d, 'all_in': e, 'raiser':f, 'check':g, 'hands':h}
+        i = self.aggroStats.aggroLevel
+        j = self.aggroStats.looseLevel
+        return {'cont_bet': a, 'three_bet': b, 'call': c, 'fold':d, 'all_in': e, 'raiser':f, 'check':g, 'hands':h, 'aggroLevel':i, 'looseLevel':j}
 
 """
 
@@ -364,4 +378,89 @@ class Stats(object):
             if river_actions != [] and river_actions != [['DEAL','RIVER']]:
  
                 self.nobutton.river.stageUpdate(river_actions,scraper)
+
+
+class AggressionStats(object):
+    
+    def __init__(self):
+        self.aggroLevel = None
+        self.looseLevel = None
+    
+        self.raiserModifier = 1.0
+        self.threeBetModifier = 1.3
+        self.allInModifier = 2.0
+        self.checkModifier = 1.5
+        self.cBetModifier = 1.2
+        self.foldModifier = 1.7
+        self.callModifier = 1.2
+    
+    
+
+    def setLevels(self,stats,scraper,actions):
+    
+        aggrocalc = 1.0*((stats['raiser'][0] * self.raiserModifier * stats['raiser'][3] / scraper.fields['bb'])+(stats['three_bet'][0] * self.threeBetModifier * stats['three_bet'][3] / scraper.fields['bb'])+(stats['all_in'][0] * self.allInModifier)+(stats['cont_bet'][0] * self.cBetModifier * stats['cont_bet'][3] / scraper.fields['bb'])-(stats['check'][0] * self.checkModifier)-(stats['fold'][0] * self.foldModifier)-(stats['call'][0] * self.callModifier))/stats['hands']
+            
+            
+        loosecalc = 1.0*(stats['hands'] - stats['fold'][0])/stats['hands']
+
+
+        if actions[0][0] != 'DEAL':
+            if aggrocalc > 80:
+                self.aggroLevel = 4
+            elif aggrocalc > 60:
+                self.aggroLevel = 3
+            elif aggrocalc > 40:
+                self.aggroLevel = 2
+            else:
+                self.aggroLevel = 1
+
+
+            if loosecalc > 0.8:
+                self.looseLevel = 4
+            elif loosecalc > 0.6:
+                self.looseLevel = 3
+            elif loosecalc > 0.4:
+                self.looseLevel = 2
+            else:
+                self.looseLevel = 1
+
+
+        else:
+            if aggrocalc > 70:
+                self.aggroLevel = 4
+            elif aggrocalc > 50:
+                self.aggroLevel = 3
+            elif aggrocalc > 30:
+                self.aggroLevel = 2
+            else:
+                self.aggroLevel = 1
+
+
+            if loosecalc > 0.7:
+                self.looseLevel = 4
+            elif loosecalc > 0.5:
+                self.looseLevel = 3
+            elif loosecalc > 0.3:
+                self.looseLevel = 2
+            else:
+                self.looseLevel = 1
+
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

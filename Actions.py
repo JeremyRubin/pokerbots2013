@@ -51,7 +51,7 @@ class Parser(object):
         if word[0] == "GETACTION":
             self.fields['action'] = "GETACTION"
             self.fields['potSize'] = int(word[1])
-            self.fields['numBoardCards'] = word[2]
+            self.fields['numBoardCards'] = int(word[2])
             tempBC=int(self.fields['numBoardCards'])
             self.fields['boardCards']=word[3:3+tempBC]
             
@@ -109,7 +109,7 @@ class Parser(object):
             yourBank= word[1]
             oppBank = word[2]
             
-            self.fields['numBoardCards'] = word[3]
+            self.fields['numBoardCards'] = int(word[3])
             tempBC = int(self.fields['numBoardCards'])
             self.fields['boardCards'] = word[4:4+tempBC]
             
