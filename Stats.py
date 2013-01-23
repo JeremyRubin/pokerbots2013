@@ -155,6 +155,7 @@ class Tracker(object):
 ####### SCRAPER METHODS
     
     # self.button.preFlop.stageUpdate(preflop_actions,self.fields)
+    # Will update opp. stats at the end of the hand
     def stageUpdate(self,actions,scraper):
     
         self.update([['increment', True]])
@@ -208,6 +209,7 @@ class Tracker(object):
 
         scraper.previous_raise_count = self.raise_count
 
+        # Sets our aggro stats for this stage
         self.aggroStats.setLevels(self.read(),scraper,actions)
         
 
@@ -379,13 +381,15 @@ class Stats(object):
  
                 self.nobutton.river.stageUpdate(river_actions,scraper)
 
-
+# Class for converting stats into aggression & loose factors
 class AggressionStats(object):
+    
     
     def __init__(self):
         self.aggroLevel = None
         self.looseLevel = None
     
+        # Modifiers to be used in aggro/loose calcs
         self.raiserModifier = 1.0
         self.threeBetModifier = 1.3
         self.allInModifier = 2.0
@@ -395,7 +399,7 @@ class AggressionStats(object):
         self.callModifier = 1.2
     
     
-
+    # The actual algorithm for converting the stats to aggro/loose
     def setLevels(self,stats,scraper,actions):
     
         aggrocalc = 1.0*((stats['raiser'][0] * self.raiserModifier * stats['raiser'][3] / scraper.fields['bb'])+(stats['three_bet'][0] * self.threeBetModifier * stats['three_bet'][3] / scraper.fields['bb'])+(stats['all_in'][0] * self.allInModifier)+(stats['cont_bet'][0] * self.cBetModifier * stats['cont_bet'][3] / scraper.fields['bb'])-(stats['check'][0] * self.checkModifier)-(stats['fold'][0] * self.foldModifier)-(stats['call'][0] * self.callModifier))/stats['hands']
@@ -403,7 +407,8 @@ class AggressionStats(object):
             
         loosecalc = 1.0*(stats['hands'] - stats['fold'][0])/stats['hands']
 
-
+        # Ranges to classify opponents aggro and loose levels
+        # Separated by preflop and everything after the flop
         if actions[0][0] != 'DEAL':
             if aggrocalc > 80:
                 self.aggroLevel = 4

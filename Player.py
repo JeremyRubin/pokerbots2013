@@ -41,6 +41,7 @@ class Player(object):
         'oppName': None,
         'stackSize':None,
         'potSize': None}
+        
         self.respond = Actions.ActionResponder(s)
         self.analysis = PyAnalyzer.Analyzer()
         self.parser = Actions.Parser(self.fields)

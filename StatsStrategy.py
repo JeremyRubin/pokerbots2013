@@ -13,13 +13,15 @@ class Strategy(object):
         self.aggro = AggroModifiers(self.data)
         
     
-    ## Very basic card discarder - checks for best hand in pocket + flop
+    
     def set_data(self, data):
         self.data = data
     
     def get_data(self):
         return self.data
     
+    
+    ## Very basic card discarder - checks for best hand in pocket + flop
     def discard_low(self):
         holeCard1 = self.data['holeCard1']
         holeCard2 = self.data['holeCard2']
@@ -251,7 +253,7 @@ class Strategy(object):
             self.auto_all_in()
 
 
-
+    # Will get the data relevant to the current state of the game
     def setBettingStateStats(self):
         
         if self.data['button'] == 'true':
@@ -282,7 +284,7 @@ class Strategy(object):
                 
                 
                 
-
+    # Strategy centered around moving to the opposite spectrum of the opponent
     def counter_betting(self):
     
         
@@ -295,7 +297,7 @@ class Strategy(object):
         checkRoll = random.randint(1,101)/100.0
         callRoll = random.randint(1,101)/100.0
         
-
+        # Will ignoe the data unless 20 hands have gotten to that stage
         if currentStats['hands'] < 20:
             self.aggro.AggroMod = self.aggro.aggro3
             self.aggro.LooseMod = self.aggro.loose3
@@ -303,11 +305,14 @@ class Strategy(object):
         else:
             self.aggro.setStrategy(currentStats)
 
+        # Check for EV against current keep_percent
         keep_hand = self.keep_hand_check()
         
+        # Discard using the lowest EV
         if self.data['legalActions']['DISCARD']:
             
             self.discard_low()
+    
     
         elif keep_hand:
             if raiseRoll <= self.aggro.AggroMod['raiseFreq']:
@@ -331,7 +336,7 @@ class Strategy(object):
 
 
 
-
+    # Betting function centered on using our current Aggro state
     def aggroRaise(self):
     
         legalActions = self.data['legalActions']
@@ -408,7 +413,7 @@ class Strategy(object):
 
 
 
-
+# Class to hold the aggro&loose modifiers for ourself
 class AggroModifiers(object):
 
         def __init__(self,fields):
@@ -478,6 +483,7 @@ class AggroModifiers(object):
             'keep_percent_river': 0.65}
             
 
+        # Current sets our strategy to the opposite spectrum of opponent
         def setStrategy(self,currentStats):
         
             self.currentStats = currentStats
