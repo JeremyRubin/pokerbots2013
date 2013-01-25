@@ -176,6 +176,7 @@ class Tracker(object):
     
         self.update([['increment', True]])
         self.raise_count = 0
+        scraper.put_in_pot_now = 0
     
         for action in actions:
             
@@ -188,19 +189,22 @@ class Tracker(object):
                     
                 if action[0] == 'CALL':
                     self.update([['call', True]])
-                    scraper.put_in_pot += int(lastIteratedAction[1])
+                    scraper.put_in_pot_now = int(scraper.lastIteratedAction[1])
                 
                 elif action[0] == 'CHECK':
                     self.update([['check', True]])
+        
+                elif action[0] == 'POST':
+                    scraper.put_in_pot_now = int(action[1])
                     
                 elif action[0] == 'FOLD':
                     self.update([['fold', True]])
             
                 elif action[0] == 'RAISE':
-                    self.update([['raiser', action[1]]])
                     self.raise_count += 1
-                    scraper.put_in_pot += int(action[1])
-                    
+                    self.update([['raiser', action[1]]])
+                    scraper.put_in_pot_now = int(action[1])
+                
                     if actions[0][0] != 'DEAL':
                         if self.raise_count >= 1:
                             self.update([['three_bet', action[1]]])
@@ -211,14 +215,18 @@ class Tracker(object):
                 elif action[0] == 'BET':
                     self.update([['raiser', action[1]]])
                     self.raise_count += 1
-                    scraper.put_in_pot += int(action[1])
+                    scraper.put_in_pot_now = int(action[1])
             
-            lastIteratedAction = action
-            
-            if not scraper.all_in:
-                if scraper.put_in_pot == scraper.fields['stackSize']:
-                    self.update([['all_in', True]])
-                    scraper.all_in = True
+            scraper.lastIteratedAction = action
+        
+        scraper.put_in_pot_last += scraper.put_in_pot_now
+        print scraper.all_in
+        print scraper.put_in_pot_last
+    
+        if not scraper.all_in:
+            if scraper.put_in_pot_last == scraper.fields['stackSize']:
+                self.update([['all_in', True]])
+                scraper.all_in = True
         
         if scraper.fields['button']:
             if scraper.previous_raise_count >= 1 and actions[1][0] == 'BET' and actions[1][2] == scraper.fields['oppName']:
@@ -306,7 +314,9 @@ class Trackers(object):
 # Variables to pass through while scraping
 class Scrapers():
     def __init__(self):
-        self.put_in_pot = 0
+        self.put_in_pot_last = 0
+        self.put_in_pot_now = 0
+        self.lastIteratedAction = ''
         self.all_in = False
         self.previous_raise_count = 0
         self.fields = []
@@ -439,27 +449,21 @@ class AggressionStats(object):
         # Ranges to classify opponents aggro and loose levels
         # Separated by preflop and everything after the flop
         if actions[0][0] != 'DEAL':
-            if aggrocalc > 40:
-                self.aggroLevel = 4
-            elif aggrocalc > 35:
-                self.aggroLevel = 3
-            elif aggrocalc > 30:
-                self.aggroLevel = 2
-            else:
-                self.aggroLevel = 1
-
-
-            if loosecalc > 0.90:
-                self.looseLevel = 4
-            elif loosecalc > 0.80:
-                self.looseLevel = 3
-            elif loosecalc > 0.70:
-                self.looseLevel = 2
-            else:
-                self.looseLevel = 1
-
+          #  if aggrocalc > 40:
+           #     self.aggroLevel = 4
+          #  elif aggrocalc > 35:
+           #     self.aggroLevel = 3
+           # elif aggrocalc > 30:
+            #    self.aggroLevel = 2
+           # else:
+            #    self.aggroLevel = 1
+            self.aggroLevel = aggrocalc
+            self.looseLevel = loosecalc
 
         else:
+            self.aggroLevel = aggrocalc
+            self.looseLevel = loosecalc
+        '''
             if aggrocalc > 35:
                 self.aggroLevel = 4
             elif aggrocalc > 30:
@@ -478,23 +482,5 @@ class AggressionStats(object):
                 self.looseLevel = 2
             else:
                 self.looseLevel = 1
-
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+'''
 

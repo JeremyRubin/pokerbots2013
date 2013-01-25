@@ -1,7 +1,7 @@
 from datetime import datetime
 import pbots_calc
 import random
-
+import math
 
 class Strategy(object):
 
@@ -381,7 +381,7 @@ class Strategy(object):
             if amount > int(legalActions['RAISE']['MAX']):
                 self.responder.do('RAISE',legalActions['RAISE']['MAX'])
             else:
-                self.responder.do('RAISE',str(amount))
+                self.responder.do('RAISE',str(math.ceil(amount)))
             
         elif self.data['legalActions']['BET']['True']:
             amount = self.aggro.AggroMod['raiseLevel'] * int(legalActions['BET']['MIN'])
@@ -516,11 +516,41 @@ class AggroModifiers(object):
             'keep_percent_flop': 0.45,
             'keep_percent_turn': 0.40,
             'keep_percent_river': 0.35}
+    
+        def generate_exponential_strategies(self,currentStats):
+        
+            self.currentStats = currentStats
             
+            aggro_level = self.currentStats['aggroLevel']
+            loose_level = self.currentStats['looseLevel']
+            raiseFreq = 0.85-0.35*math.exp(aggro_level*-10.0)
+            checkFreq = 1-raiseFreq
+            callFreq = raiseFreq
+            raiseLevel = 5.0-4.3*math.exp(aggro_level*-10.0)
+            
+            self.AggroMod = {
+            'raiseFreq' : raiseFreq,
+            'raiseLevel': raiseLevel,
+            'callFreq' : callFreq,
+            'checkFreq' : checkFreq,
+            'unpredictable' : 0.30}
 
+            freq = -6.25
+            pflop = 0.6-0.15*math.exp(loose_level*freq)
+            posflop = 0.55-0.15*math.exp(loose_level*freq)
+            turn = 0.5-0.15*math.exp(loose_level*freq)
+            river = 0.45-0.15*math.exp(loose_level*freq)
+
+            self.LooseMod = {
+            'keep_percent_preflop': pflop,
+            'keep_percent_flop': posflop,
+            'keep_percent_turn': turn,
+            'keep_percent_river': river}
+            
         # Current sets our strategy to the opposite spectrum of opponent
         def setStrategy(self,currentStats):
-        
+            self.generate_exponential_strategies(currentStats)
+"""        
             self.currentStats = currentStats
             
             if self.currentStats['aggroLevel'] == 4:
@@ -555,7 +585,7 @@ class AggroModifiers(object):
             if self.currentStats['looseLevel'] == 1:
             
                 self.LooseMod = self.loose1
-
+"""
             
 
 
