@@ -119,9 +119,9 @@ class Strategy(object):
     # Turns output of pbots_calc into a useable list
     def pbots_calc_clean(self,handlist,boardlist,discarded):
         
-        # set for 100 Monte Carlo iterations
+        # set for 10000 Monte Carlo iterations
         #d1 = datetime.now()
-        oddslist = str(pbots_calc.calc(handlist,boardlist,discarded,1000))
+        oddslist = str(pbots_calc.calc(handlist,boardlist,discarded,10000))
         #d2 = datetime.now()
         #print d2-d1
         oddslist = list(oddslist)
@@ -173,6 +173,8 @@ class Strategy(object):
         else:
             oddslist = self.pbots_calc_clean(handlist+':xx',boardlist,self.data['burnedCard_is'])
     
+        print 'Calculated EV: '+str(oddslist)
+        print
         # generate the keep_hand boolean, determined by keep_percent
         if (float(oddslist[1])>= 1.0-keep_percent):
             return True
@@ -297,7 +299,7 @@ class Strategy(object):
         checkRoll = random.randint(1,101)/100.0
         callRoll = random.randint(1,101)/100.0
         
-        # Will ignoe the data unless 20 hands have gotten to that stage
+        # Will ignore the data unless 20 hands have gotten to that stage
         if currentStats['hands'] < 20:
             self.aggro.AggroMod = self.aggro.aggro3
             self.aggro.LooseMod = self.aggro.loose3
@@ -329,6 +331,39 @@ class Strategy(object):
                 self.responder.do('FOLD', None)
             else:
                 self.responder.do('CHECK', None)
+
+
+
+
+    # Tight aggressive strategy
+    def TAG(self):
+    
+        self.aggro.AggroMod = self.aggro.aggro4
+        self.aggro.LooseMod = self.aggro.loose2
+        
+        raiseRoll = random.randint(1,101)/100.0
+        
+        keep_hand = self.keep_hand_check()
+        
+        if self.data['legalActions']['DISCARD']:
+            self.discard_low()
+            
+        elif keep_hand:
+            if raiseRoll <= self.aggro.AggroMod['raiseFreq']:
+                self.aggroRaise() 
+            else:
+                if self.data['legalActions']['CALL']:
+                    self.responder.do('CALL', None)
+                else:
+                    self.responder.do('CHECK', None)
+
+        else:
+            print 'Fold because not keep_hand'
+            if self.data['legalActions']['FOLD']:
+                self.responder.do('FOLD', None)
+            else:
+                self.responder.do('CHECK', None)
+        
 
 
 
@@ -459,28 +494,28 @@ class AggroModifiers(object):
             'unpredictable' : 0.30}
     
             self.loose1 = {
-            'keep_percent_preflop': 0.60,
-            'keep_percent_flop': 0.55,
-            'keep_percent_turn': 0.50,
-            'keep_percent_river': 0.45}
+            'keep_percent_preflop': 0.45,
+            'keep_percent_flop': 0.40,
+            'keep_percent_turn': 0.35,
+            'keep_percent_river': 0.30}
             
             self.loose2 = {
-            'keep_percent_preflop': 0.70,
-            'keep_percent_flop': 0.65,
-            'keep_percent_turn': 0.60,
-            'keep_percent_river': 0.55}
+            'keep_percent_preflop': 0.50,
+            'keep_percent_flop': 0.45,
+            'keep_percent_turn': 0.40,
+            'keep_percent_river': 0.35}
             
             self.loose3 = {
-            'keep_percent_preflop': 0.75,
-            'keep_percent_flop': 0.70,
-            'keep_percent_turn': 0.65,
-            'keep_percent_river': 0.60}
+            'keep_percent_preflop': 0.45,
+            'keep_percent_flop': 0.40,
+            'keep_percent_turn': 0.35,
+            'keep_percent_river': 0.30}
     
             self.loose4 = {
-            'keep_percent_preflop': 0.80,
-            'keep_percent_flop': 0.75,
-            'keep_percent_turn': 0.70,
-            'keep_percent_river': 0.65}
+            'keep_percent_preflop': 0.50,
+            'keep_percent_flop': 0.45,
+            'keep_percent_turn': 0.40,
+            'keep_percent_river': 0.35}
             
 
         # Current sets our strategy to the opposite spectrum of opponent
@@ -490,36 +525,36 @@ class AggroModifiers(object):
             
             if self.currentStats['aggroLevel'] == 4:
             
-                self.AggroMod = self.aggro1
+                self.AggroMod = self.aggro4
 
             if self.currentStats['aggroLevel'] == 3:
             
-                self.AggroMod = self.aggro2
+                self.AggroMod = self.aggro3
                 
             if self.currentStats['aggroLevel'] == 2:
             
-                self.AggroMod = self.aggro3
+                self.AggroMod = self.aggro2
 
             if self.currentStats['aggroLevel'] == 1:
             
-                self.AggroMod = self.aggro4
+                self.AggroMod = self.aggro1
 
 
             if self.currentStats['looseLevel'] == 4:
             
-                self.LooseMod = self.loose1
+                self.LooseMod = self.loose4
 
             if self.currentStats['looseLevel'] == 3:
             
-                self.LooseMod = self.loose2
+                self.LooseMod = self.loose3
                 
             if self.currentStats['looseLevel'] == 2:
             
-                self.LooseMod = self.loose3
+                self.LooseMod = self.loose2
 
             if self.currentStats['looseLevel'] == 1:
             
-                self.LooseMod = self.loose4
+                self.LooseMod = self.loose1
 
             
 

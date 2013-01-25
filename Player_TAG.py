@@ -63,7 +63,6 @@ class Player(object):
             # Here is where you should implement code to parse the packets from
             # the engine and act on it. We are just printing it instead.
             print data
-            print
             #################################
             #       PARSER BLOCK            #
             #################################
@@ -77,32 +76,31 @@ class Player(object):
             
         #print self.fields, 'ffff'
             if action == "GETACTION":
-                self.strategy.counter_betting()
-                print 'Our current Aggro Strategy: '+str(self.strategy.aggro.AggroMod)
+                self.strategy.TAG()
+                print self.strategy.aggro.AggroMod
                 print
-                print 'Our current Loose Strategy: '+str(self.strategy.aggro.LooseMod)
+                print self.strategy.aggro.LooseMod
                 print
+
             if action == "HANDOVER":
                 self.strategy.stats.endOfHandUpdate(self.fields)
-                
-                print 'Button Preflop Stats: '+str(self.strategy.stats.button.preFlop.read())
-                print
-                print 'Button Flop Stats: '+str(self.strategy.stats.button.postFlop.read())
-                print 
-                print 'Button Turn Stats: '+str(self.strategy.stats.button.turn.read())
-                print 
-                print 'Button River Stats: '+str(self.strategy.stats.button.river.read())
-                print 
-                print 'Non-Button Preflop Stats: '+str(self.strategy.stats.nobutton.preFlop.read())
-                print
-                print 'Non-Button Flop Stats: '+str(self.strategy.stats.nobutton.postFlop.read())
-                print 
-                print 'Non-Button Turn Stats: '+str(self.strategy.stats.nobutton.turn.read())
-                print 
-                print 'Non-Button River Stats: '+str(self.strategy.stats.nobutton.river.read())
-                print 
-                
             elif action == "REQUESTKEYVALUES":
+                print self.strategy.stats.button.preFlop.read()
+                print
+                print self.strategy.stats.button.postFlop.read()
+                print 
+                print self.strategy.stats.button.turn.read()
+                print 
+                print self.strategy.stats.button.river.read()
+                print 
+                print self.strategy.stats.nobutton.preFlop.read()
+                print
+                print self.strategy.stats.nobutton.postFlop.read()
+                print 
+                print self.strategy.stats.nobutton.turn.read()
+                print 
+                print self.strategy.stats.nobutton.river.read()
+                print 
 
                 # At the end, the engine will allow your bot save key/value pairs.
                 # Send FINISH to indicate you're done.

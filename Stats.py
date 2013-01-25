@@ -41,9 +41,10 @@ class Tracker(object):
         self.ch = [0,0] # check [check, percent]
         self.tb = [0,0,0,0] # threebet [raises, amount, raises%,amount_avg ]
         self.cb = [0,0,0,0] # c-bet [raise, amount, raise%, amount_avg ]
+        self.of = [0,0] # our fold [folds, percent]
         #TODO further than threebets?
         self.opts  = {'cont_bet':self._cont_bet, 'three_bet': self._three_bet, 'call': self._call, 'fold':self._fold,\
-                            'all_in':self._all_in, 'raiser':self._raiser, 'check':self._check, 'increment':property(self._increment)}
+                            'our_fold':self._our_fold, 'all_in':self._all_in, 'raiser':self._raiser, 'check':self._check, 'increment':property(self._increment)}
                             # anything we can call
 
     
@@ -101,6 +102,21 @@ class Tracker(object):
             self.f[0] += 1
         if self.f[0] != 0:
             self.f[1] = 1.0*self.f[0]/self.hands
+    
+    
+#######  OUR FOLD
+    @property
+    def _our_fold(self):
+        return self.of
+
+    @_our_fold.setter
+    def _our_fold(self, folded):
+        if(folded):
+            self.of[0] += 1
+        if self.of[0] != 0:
+            self.of[1] = 1.0*self.of[0]/self.hands
+
+
 ##### CALL
     @property
     def _call(self):
@@ -162,8 +178,13 @@ class Tracker(object):
         self.raise_count = 0
     
         for action in actions:
-        
-            if action[-1] == scraper.fields['oppName']:
+            
+            if action[-1] == scraper.fields['yourName']:
+            
+                if action[0] == 'FOLD':
+                    self.update([['our_fold', True]])
+            
+            elif action[-1] == scraper.fields['oppName']:
                     
                 if action[0] == 'CALL':
                     self.update([['call', True]])
@@ -220,7 +241,7 @@ class Tracker(object):
         # be sure to include increment with no [data]
         # send in a blank request to update percents like update(None)
         if updates == None:
-            updates = [['cont_bet', '0'],['all_in', False],['fold', False],['call', False],['three_bet', '0'],['raiser', '0'],['check', False]]
+            updates = [['cont_bet', '0'],['all_in', False],['our_fold',False],['fold', False],['call', False],['three_bet', '0'],['raiser', '0'],['check', False]]
         for update in updates:
             ####self.opts[update[0]](update[1])
             if update[0] == 'cont_bet':
@@ -231,6 +252,8 @@ class Tracker(object):
                 self._call = update[1]
             elif update[0] == 'fold':
                 self._fold = update[1]
+            elif update[0] == 'our_fold':
+                self._our_fold = update[1]
             elif update[0] == 'all_in':
                 self._all_in = update[1]
             elif update[0] == 'raiser':
@@ -253,7 +276,8 @@ class Tracker(object):
         h = self._increment
         i = self.aggroStats.aggroLevel
         j = self.aggroStats.looseLevel
-        return {'cont_bet': a, 'three_bet': b, 'call': c, 'fold':d, 'all_in': e, 'raiser':f, 'check':g, 'hands':h, 'aggroLevel':i, 'looseLevel':j}
+        k = self._our_fold
+        return {'cont_bet': a, 'three_bet': b, 'call': c, 'fold':d, 'all_in': e, 'raiser':f, 'check':g, 'hands':h, 'aggroLevel':i, 'looseLevel':j, 'our_fold':k}
 
 """
 
@@ -390,8 +414,8 @@ class AggressionStats(object):
         self.looseLevel = None
     
         # Modifiers to be used in aggro/loose calcs
-        self.raiserModifier = 1.0
-        self.threeBetModifier = 1.3
+        self.raiserModifier = 1.2
+        self.threeBetModifier = 1.5
         self.allInModifier = 2.0
         self.checkModifier = 1.5
         self.cBetModifier = 1.2
@@ -402,38 +426,22 @@ class AggressionStats(object):
     # The actual algorithm for converting the stats to aggro/loose
     def setLevels(self,stats,scraper,actions):
     
-        aggrocalc = 1.0*((stats['raiser'][0] * self.raiserModifier * stats['raiser'][3] / scraper.fields['bb'])+(stats['three_bet'][0] * self.threeBetModifier * stats['three_bet'][3] / scraper.fields['bb'])+(stats['all_in'][0] * self.allInModifier)+(stats['cont_bet'][0] * self.cBetModifier * stats['cont_bet'][3] / scraper.fields['bb'])-(stats['check'][0] * self.checkModifier)-(stats['fold'][0] * self.foldModifier)-(stats['call'][0] * self.callModifier))/stats['hands']
+        aggrocalc = 1.0*((stats['raiser'][0] * self.raiserModifier * stats['raiser'][3]/scraper.fields['bb'])+(stats['three_bet'][0] * self.threeBetModifier * stats['three_bet'][3]/scraper.fields['bb'])+(stats['all_in'][0] * self.allInModifier)+(stats['cont_bet'][0] * self.cBetModifier * stats['cont_bet'][3] / scraper.fields['bb'])-(stats['call'][0] * self.callModifier))/stats['hands']
             
             
-        loosecalc = 1.0*(stats['hands'] - stats['fold'][0])/stats['hands']
+        loosecalc = 1.0*(stats['hands'] - stats['fold'][0] - stats['our_fold'][0])/(1+stats['hands'] - (stats['our_fold'][0]))
 
+        print
+        print 'Aggro Calculation: '+str(aggrocalc)
+        print
+        print 'Loose Calcuation: '+str(loosecalc)
+        print
         # Ranges to classify opponents aggro and loose levels
         # Separated by preflop and everything after the flop
         if actions[0][0] != 'DEAL':
-            if aggrocalc > 80:
+            if aggrocalc > 40:
                 self.aggroLevel = 4
-            elif aggrocalc > 60:
-                self.aggroLevel = 3
-            elif aggrocalc > 40:
-                self.aggroLevel = 2
-            else:
-                self.aggroLevel = 1
-
-
-            if loosecalc > 0.8:
-                self.looseLevel = 4
-            elif loosecalc > 0.6:
-                self.looseLevel = 3
-            elif loosecalc > 0.4:
-                self.looseLevel = 2
-            else:
-                self.looseLevel = 1
-
-
-        else:
-            if aggrocalc > 70:
-                self.aggroLevel = 4
-            elif aggrocalc > 50:
+            elif aggrocalc > 35:
                 self.aggroLevel = 3
             elif aggrocalc > 30:
                 self.aggroLevel = 2
@@ -441,11 +449,32 @@ class AggressionStats(object):
                 self.aggroLevel = 1
 
 
-            if loosecalc > 0.7:
+            if loosecalc > 0.90:
                 self.looseLevel = 4
-            elif loosecalc > 0.5:
+            elif loosecalc > 0.80:
                 self.looseLevel = 3
-            elif loosecalc > 0.3:
+            elif loosecalc > 0.70:
+                self.looseLevel = 2
+            else:
+                self.looseLevel = 1
+
+
+        else:
+            if aggrocalc > 35:
+                self.aggroLevel = 4
+            elif aggrocalc > 30:
+                self.aggroLevel = 3
+            elif aggrocalc > 25:
+                self.aggroLevel = 2
+            else:
+                self.aggroLevel = 1
+
+
+            if loosecalc > 0.80:
+                self.looseLevel = 4
+            elif loosecalc > 0.70:
+                self.looseLevel = 3
+            elif loosecalc > 0.60:
                 self.looseLevel = 2
             else:
                 self.looseLevel = 1
