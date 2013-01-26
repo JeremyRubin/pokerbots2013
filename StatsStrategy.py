@@ -22,6 +22,7 @@ class Strategy(object):
     
     
     ## Very basic card discarder - checks for best hand in pocket + flop
+    '''
     def discard_low(self):
         holeCard1 = self.data['holeCard1']
         holeCard2 = self.data['holeCard2']
@@ -61,6 +62,42 @@ class Strategy(object):
             self.data['selectedCard1'] = ar.pop()
             self.data['selectedCard2'] = ar.pop()
             self.responder.do('DISCARD',choices[analysis])
+    '''
+    # Want to try a discarding function based off of pbots_calc
+    def discard_low(self):
+        holeCard1 = self.data['holeCard1']
+        holeCard2 = self.data['holeCard2']
+        holeCard3 = self.data['holeCard3']
+        boardlist = ''
+        for card in self.data['boardCards']:
+            boardlist += card
+
+        
+        ab = float(self.pbots_calc_clean(holeCard1+holeCard2+':xx',boardlist,'')[1])
+        bc = float(self.pbots_calc_clean(holeCard2+holeCard3+':xx',boardlist,'')[1])
+        ac = float(self.pbots_calc_clean(holeCard1+holeCard3+':xx',boardlist,'')[1])
+       
+        
+        if bc>ab and bc>ac:
+            self.data['burnedCard_is'] = self.data['holeCard1']
+            self.data['selectedCard1'] = self.data['holeCard2']
+            self.data['selectedCard2'] = self.data['holeCard3']
+            self.responder.do('DISCARD', holeCard1)
+        elif ac>bc and ac>ab:
+            self.data['burnedCard_is'] = self.data['holeCard2']
+            self.data['selectedCard1'] = self.data['holeCard1']
+            self.data['selectedCard2'] = self.data['holeCard3']
+            self.responder.do('DISCARD', holeCard2)
+        elif ab>bc and ab>ac:
+            self.data['burnedCard_is'] = self.data['holeCard3']
+            self.data['selectedCard1'] = self.data['holeCard2']
+            self.data['selectedCard2'] = self.data['holeCard1']
+            self.responder.do('DISCARD', holeCard3)
+        else:
+            self.data['burnedCard_is'] = self.data['holeCard1']
+            self.data['selectedCard1'] = self.data['holeCard2']
+            self.data['selectedCard2'] = self.data['holeCard3']
+            self.responder.do('DISCARD', holeCard1)
 
 
 
