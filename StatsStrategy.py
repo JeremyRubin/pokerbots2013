@@ -554,16 +554,16 @@ class AggroModifiers(object):
             'keep_percent_turn': 0.40,
             'keep_percent_river': 0.35}
     
-        def generate_exponential_strategies(self,currentStats):
+        def generate_exponential_strategies(self, currentStats):
+            aggro_level = currentStats['aggroLevel']
+            loose_level = currentStats['looseLevel']
+
+            aggro_freq = -6.0
         
-            self.currentStats = currentStats
-            
-            aggro_level = self.currentStats['aggroLevel']
-            loose_level = self.currentStats['looseLevel']
-            raiseFreq = 0.85-0.35*math.exp(aggro_level*-10.0)
+            raiseFreq = 0.5+.35/(1+100.0*math.exp(aggro_level/100.0*-15.0))
             checkFreq = 1-raiseFreq
             callFreq = raiseFreq
-            raiseLevel = 5.0-4.3*math.exp(aggro_level*-10.0)
+            raiseLevel = 1.0 + 4.0/(1.0+100.0*math.exp(aggro_level/100.0*-15.0))
             
             self.AggroMod = {
             'raiseFreq' : raiseFreq,
@@ -572,18 +572,20 @@ class AggroModifiers(object):
             'checkFreq' : checkFreq,
             'unpredictable' : 0.30}
 
-            freq = -6.25
-            pflop = 0.6-0.15*math.exp(loose_level*freq)
-            posflop = 0.55-0.15*math.exp(loose_level*freq)
-            turn = 0.5-0.15*math.exp(loose_level*freq)
-            river = 0.45-0.15*math.exp(loose_level*freq)
+            adjust = 0.15/(1.0+100.0*math.exp(loose_level*-25.0))+0.45
+            pflop = adjust+0.45
+            posflop = adjust + 0.40
+            turn = adjust + 0.35
+            river = adjust + 0.30
 
             self.LooseMod = {
             'keep_percent_preflop': pflop,
             'keep_percent_flop': posflop,
             'keep_percent_turn': turn,
             'keep_percent_river': river}
-            
+            print '#################################################'
+
+            print aggro_level, raiseFreq, raiseLevel, '|', pflop
         # Current sets our strategy to the opposite spectrum of opponent
         def setStrategy(self,currentStats):
             self.generate_exponential_strategies(currentStats)
@@ -628,13 +630,6 @@ class AggroModifiers(object):
 
 
             
-
-
-
-    
-
-
-
 
 
 
