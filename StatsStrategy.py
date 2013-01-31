@@ -394,8 +394,7 @@ class Strategy(object):
         if self.data['legalActions']['DISCARD']:
             self.discard_low()
         elif keep_hand:
-            
-            if raiseRoll >= self.aggro.AggroMod['raiseFreq']:
+            if 1.0 <= (self.aggro.AggroMod['raiseFreq'] + keep_hand):
                 self.aggroRaise()
             else:
                 if self.data['legalActions']['CALL']:
