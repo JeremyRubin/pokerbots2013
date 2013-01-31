@@ -214,7 +214,7 @@ class Strategy(object):
         print
         # generate the keep_hand boolean, determined by keep_percent
         if (float(oddslist[1])>= 1.0-keep_percent):
-            return True
+            return float(oddslist[1])
         else:
             return False
 
@@ -332,7 +332,7 @@ class Strategy(object):
         
         
         unpredictableRoll = random.randint(1,101)/100.0 # not implemented yet
-        raiseRoll = random.randint(1,101)/100.0
+        raiseRoll = random.randint(1,101)/100.0 # TODO: Why isn't this just random?
         checkRoll = random.randint(1,101)/100.0
         callRoll = random.randint(1,101)/100.0
         
@@ -369,7 +369,65 @@ class Strategy(object):
             else:
                 self.responder.do('CHECK', None)
 
-
+    def jeremy_betting(self):
+        lastActionsSplit = self.data['lastActionsSplit']
+        currentStats = self.setBettingStateStats()
+        
+        
+        unpredictableRoll = random.random()# not implemented yet
+        raiseRoll = random.random() # TODO: Why isn't this just random?
+        checkRoll = random.random()# Why use any random factors?
+        callRoll = random.random()
+        
+        # Will ignore the data unless 20 hands have gotten to that stage
+        if currentStats['hands'] < 20:
+            self.aggro.AggroMod = self.aggro.aggro3
+            self.aggro.LooseMod = self.aggro.loose2
+        
+        else:
+            self.aggro.setStrategy(currentStats)
+        
+        # Check for EV against current keep_percent
+        keep_hand = self.keep_hand_check() # False or Equity
+        
+        # Discard using the lowest EV
+        if self.data['legalActions']['DISCARD']:
+            self.discard_low()
+        elif keep_hand:
+            
+            if raiseRoll >= self.aggro.AggroMod['raiseFreq']:
+                self.aggroRaise()
+            else:
+                if self.data['legalActions']['CALL']:
+                    self.responder.do('CALL', None)
+                else:
+                    self.responder.do('CHECK', None)
+        
+        else:
+            if self.data['legalActions']['CHECK']:
+                self.responder.do('CHECK', None)
+            else:
+                self.responder.do('FOLD', None)
+            
+    def jeremyRaise(self):
+        
+        legalActions = self.data['legalActions']
+        
+        if self.data['legalActions']['RAISE']['True']:
+            amount = self.aggro.AggroMod['raiseLevel'] * int(legalActions['RAISE']['MIN'])
+            if amount > int(legalActions['RAISE']['MAX']):
+                self.responder.do('RAISE',legalActions['RAISE']['MAX'])
+            else:
+                self.responder.do('RAISE',str(math.ceil(amount)))
+        
+        elif self.data['legalActions']['BET']['True']:
+            amount = self.aggro.AggroMod['raiseLevel'] * int(legalActions['BET']['MIN'])
+            if amount > int(legalActions['BET']['MAX']):
+                self.responder.do('BET',legalActions['BET']['MAX'])
+            else:
+                self.responder.do('BET',str(amount))
+        else:
+            self.responder.do('CALL',None)
 
 
     # Tight aggressive strategy
@@ -408,6 +466,7 @@ class Strategy(object):
 
 
 
+
     # Betting function centered on using our current Aggro state
     def aggroRaise(self):
     
@@ -431,18 +490,6 @@ class Strategy(object):
 
             
             
-                
-            
-        
-        
-        
-
-        
-            
-    
-    
-    
-
 
     ## Test function: always calling, discarding lowest card
     def auto_call(self):
@@ -572,11 +619,11 @@ class AggroModifiers(object):
             'checkFreq' : checkFreq,
             'unpredictable' : 0.30}
 
-            adjust = 0.15/(1.0+100.0*math.exp(loose_level*-25.0))+0.45
-            pflop = adjust+0.45
-            posflop = adjust + 0.40
-            turn = adjust + 0.35
-            river = adjust + 0.30
+            adjust = 0.15/(1.0+100.0*math.exp(loose_level*-25.0))
+            pflop = adjust+0.35
+            posflop = adjust + 0.30
+            turn = adjust + 0.25
+            river = adjust + 0.20
 
             self.LooseMod = {
             'keep_percent_preflop': pflop,
