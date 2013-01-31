@@ -339,7 +339,7 @@ class Strategy(object):
         # Will ignore the data unless 20 hands have gotten to that stage
         if currentStats['hands'] < 20:
             self.aggro.AggroMod = self.aggro.aggro3
-            self.aggro.LooseMod = self.aggro.loose3
+            self.aggro.LooseMod = self.aggro.loose2
             
         else:
             self.aggro.setStrategy(currentStats)
@@ -376,7 +376,7 @@ class Strategy(object):
     def TAG(self):
     
         self.aggro.AggroMod = self.aggro.aggro4
-        self.aggro.LooseMod = self.aggro.loose2
+        self.aggro.LooseMod = self.aggro.loose4
         
         raiseRoll = random.randint(1,101)/100.0
         
@@ -503,32 +503,32 @@ class AggroModifiers(object):
             'keep_percent_river': None}
     
             self.aggro1 = {
-            'raiseFreq' : 0.50,
+            'raiseFreq' : 0.45,
             'raiseLevel': 1,
-            'callFreq' : 0.50,
-            'checkFreq' : 0.50,
-            'unpredictable' : 0.15}
+            'callFreq' : 0.45,
+            'checkFreq' : 0.55,
+            'unpredictable' : 0.20}
     
             self.aggro2 = {
-            'raiseFreq' : 0.60,
+            'raiseFreq' : 0.50,
             'raiseLevel': 2,
-            'callFreq' : 0.60,
-            'checkFreq' : 0.40,
+            'callFreq' : 0.50,
+            'checkFreq' : 0.50,
             'unpredictable' : 0.20}
     
             self.aggro3 = {
-            'raiseFreq' : 0.70,
+            'raiseFreq' : 0.55,
             'raiseLevel': 3,
-            'callFreq' : 0.70,
-            'checkFreq' : 0.30,
-            'unpredictable' : 0.25}
+            'callFreq' : 0.55,
+            'checkFreq' : 0.45,
+            'unpredictable' : 0.20}
     
             self.aggro4 = {
-            'raiseFreq' : 0.80,
+            'raiseFreq' : 0.60,
             'raiseLevel': 4,
-            'callFreq' : 0.80,
-            'checkFreq' : 0.20,
-            'unpredictable' : 0.30}
+            'callFreq' : 0.60,
+            'checkFreq' : 0.40,
+            'unpredictable' : 0.20}
     
             self.loose1 = {
             'keep_percent_preflop': 0.45,
@@ -543,16 +543,16 @@ class AggroModifiers(object):
             'keep_percent_river': 0.35}
             
             self.loose3 = {
-            'keep_percent_preflop': 0.45,
-            'keep_percent_flop': 0.40,
-            'keep_percent_turn': 0.35,
-            'keep_percent_river': 0.30}
+            'keep_percent_preflop': 0.55,
+            'keep_percent_flop': 0.50,
+            'keep_percent_turn': 0.45,
+            'keep_percent_river': 0.40}
     
             self.loose4 = {
-            'keep_percent_preflop': 0.50,
-            'keep_percent_flop': 0.45,
-            'keep_percent_turn': 0.40,
-            'keep_percent_river': 0.35}
+            'keep_percent_preflop': 0.60,
+            'keep_percent_flop': 0.55,
+            'keep_percent_turn': 0.45,
+            'keep_percent_river': 0.40}
     
         def generate_exponential_strategies(self, currentStats):
             aggro_level = currentStats['aggroLevel']
