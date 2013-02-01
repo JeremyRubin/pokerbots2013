@@ -2,6 +2,71 @@ from datetime import datetime
 import pbots_calc
 import random
 import math
+# Class to hold the aggro&loose modifiers for ourself
+class AggroModifiers(object):
+    
+    def __init__(self,fields):
+        self.AggroMod = {
+        'raiseFreq' : None,
+        'raiseLevel': None,
+        'callFreq' : None,
+        'checkFreq' : None,
+        'unpredictable' : None}
+        
+        self.LooseMod = {
+        'keep_percent_preflop': None,
+        'keep_percent_flop': None,
+        'keep_percent_turn': None,
+        'keep_percent_river': None}
+        
+        self.aggroInitial = {
+        'raiseFreq' : 0.55,
+        'raiseLevel': 3,
+        'callFreq' : 0.55,
+        'checkFreq' : 0.45,
+        'unpredictable' : 0.20}
+        self.looseInitial = {
+        'keep_percent_preflop': 0.50,
+        'keep_percent_flop': 0.45,
+        'keep_percent_turn': 0.40,
+        'keep_percent_river': 0.35,
+        'lq':5}
+    
+    def setStrategy(self, currentStats):
+        aggro_sum = currentStats['aggroLevel']
+        loose_level = currentStats['looseLevel']
+        aggro_level = 50.0/(1.0+100*math.exp(-1.0*aggro_sum/0.65))
+        aggro_freq = -6.0
+        
+        raiseFreq = 0.5+.35/(1+100.0*math.exp(aggro_level/100.0*-15.0))
+        checkFreq = 1-raiseFreq
+        callFreq = raiseFreq
+        
+        raiseLevel = 1.0 + 4.0/(1.0+100.0*math.exp(aggro_level/100.0*-15.0))
+        
+        self.AggroMod = {
+        'raiseFreq' : raiseFreq,
+        'raiseLevel': raiseLevel,
+        'callFreq' : callFreq,
+        'checkFreq' : checkFreq,
+        'unpredictable' : 0.30}
+        
+        adjust = 1/(1.0+100.0*math.exp(loose_level*-25.0))
+        pflop = 0.15*adjust+0.35
+        posflop = 0.15*adjust + 0.30
+        turn = 0.15*adjust + 0.25
+        river = 0.15*adjust + 0.20
+        loose_eq = 2.0+(3.0+math.cos(loose_level*200))/(1.0+100.0*math.exp(loose_level*-25.0))
+        
+        self.LooseMod = {
+        'keep_percent_preflop': pflop,
+        'keep_percent_flop': posflop,
+        'keep_percent_turn': turn,
+        'keep_percent_river': river,
+        'lq': loose_eq}
+        print '#################################################'
+        
+        print aggro_level, raiseFreq, raiseLevel, '|', pflop
 
 class Strategy(object):
 
@@ -12,57 +77,11 @@ class Strategy(object):
         self.stats = stats
         self.aggro = AggroModifiers(self.data)
         self.data['raise_counter'] = 0
-    
-    
     def set_data(self, data):
         self.data = data
     
     def get_data(self):
         return self.data
-    
-    
-    ## Very basic card discarder - checks for best hand in pocket + flop
-    '''
-    def discard_low(self):
-        holeCard1 = self.data['holeCard1']
-        holeCard2 = self.data['holeCard2']
-        holeCard3 = self.data['holeCard3']
-        boardCards = self.data['boardCards']
-        a = list(holeCard1)
-        b = list(holeCard2)
-        c = list(holeCard3)
-        
-        value_dict = {'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'T':10,'J':11,'Q':12,'K':13,'A':14}
-        inverted_value_dict = dict([[v,k] for k,v in value_dict.items()])
-        value_array = [value_dict[a[0]] ,value_dict[b[0]],value_dict[c[0]]]
-        value_array.sort()
-        lowcard = inverted_value_dict[value_array[0]]
-        analysis = self.analyzer.burn_which_card_simple(boardCards, holeCard1, holeCard2, holeCard3)
-        if analysis == 'lowcard':
-            #print a[0], b[0], c[0]
-            if a[0] == lowcard:
-                self.data['burnedCard_is'] = self.data['holeCard1']
-                self.data['selectedCard1'] = self.data['holeCard2']
-                self.data['selectedCard2'] = self.data['holeCard3']
-                self.responder.do('DISCARD', holeCard1)
-            elif b[0] == lowcard:
-                self.data['burnedCard_is'] = self.data['holeCard2']
-                self.data['selectedCard1'] = self.data['holeCard1']
-                self.data['selectedCard2'] = self.data['holeCard3']
-                self.responder.do('DISCARD', holeCard2)
-            elif c[0] == lowcard:
-                self.data['burnedCard_is'] = self.data['holeCard3']
-                self.data['selectedCard1'] = self.data['holeCard2']
-                self.data['selectedCard2'] = self.data['holeCard1']
-                self.responder.do('DISCARD', holeCard3)
-        else:
-            choices = { 1: holeCard1, 2: holeCard2, 3:holeCard3}
-            ar = [holeCard1,holeCard2, holeCard3]
-            self.data['burnedCard_is'] = ar.pop(analysis-1)
-            self.data['selectedCard1'] = ar.pop()
-            self.data['selectedCard2'] = ar.pop()
-            self.responder.do('DISCARD',choices[analysis])
-    '''
     # Want to try a discarding function based off of pbots_calc
     def discard_low(self):
         holeCard1 = self.data['holeCard1']
@@ -71,12 +90,12 @@ class Strategy(object):
         boardlist = ''
         for card in self.data['boardCards']:
             boardlist += card
-
+        
         
         ab = float(self.pbots_calc_clean(holeCard1+holeCard2+':xx',boardlist,'')[1])
         bc = float(self.pbots_calc_clean(holeCard2+holeCard3+':xx',boardlist,'')[1])
         ac = float(self.pbots_calc_clean(holeCard1+holeCard3+':xx',boardlist,'')[1])
-       
+        
         
         if bc>ab and bc>ac:
             self.data['burnedCard_is'] = self.data['holeCard1']
@@ -101,38 +120,6 @@ class Strategy(object):
 
 
 
-
-
-
-
-    ########## Basic Betting Responses ############
-
-    # Will bet 'percent' of big blind (must have BET in legal actions)
-    def bet_percent(self):
-        
-        ##### percent is currently set to 300 #####
-        percent = 300
-        betPercent = str(percent*int(self.data['bb'])/100)
-        
-        if 'RAISE' in self.data['legalActions']:
-            self.responder.do('RAISE', betPercent)
-        elif 'BET' in self.data['legalActions']:
-            self.responder.do('BET', betPercent)
-
-    # Will raise minimum amount, or will go/call all in
-    def raise_min(self):
-        if 'RAISE' in self.data['legalActions']:
-            self.responder.do('RAISE', self.data['legalActions']['RAISE']['MIN'])
-        elif 'CALL' in self.data['legalActions']:
-            self.responder.do('CALL', None)
-    ###############################################
-    
-    
-
-
-
-
-
     ########### Raise Counter Functions ###########
 
     # Resets raise counter
@@ -146,11 +133,6 @@ class Strategy(object):
     ###############################################
     
     
-    
-
-
-
-
     ########### Pbots_calc Functions ##############
 
     # Turns output of pbots_calc into a useable list
@@ -219,13 +201,164 @@ class Strategy(object):
             return False
 
     ###############################################
+
+
+    def jeremy_betting(self):
+        print 'hello world it af asfsdaf'
+        if self.data['numBoardCards'] == 0:
+            self.reset_raises()
+        elif 'DEAL' in self.data['lastActions'][-1]:
+            self.reset_raises()
+        elif len(self.data['lastActions']) >= 2:
+            if 'DEAL' in self.data['lastActions'][-2]:
+                self.reset_raises()
+
+        lastActionsSplit = self.data['lastActionsSplit']
+        currentStats = self.setBettingStateStats()
+        
+        
+        unpredictableRoll = random.random()# not implemented yet
+        raiseRoll = random.random() # TODO: Why isn't this just random?
+        checkRoll = random.random()# Why use any random factors?
+        callRoll = random.random()
+        
+        # Will ignore the data unless 20 hands have gotten to that stage
+        if currentStats['hands'] > 20:
+            self.aggro.setStrategy(currentStats)
+        else:
+            self.aggro.AggroMod = self.aggro.aggroInitial
+            self.aggro.LooseMod = self.aggro.looseInitial
+        
+        # Check for EV against current keep_percent
+        keep_hand = self.keep_hand_check() # False or Equity
+        # Discard using the lowest EV
+        if self.data['legalActions']['DISCARD']:
+            self.discard_low()
+        elif keep_hand:
+            lock = False
+            print '###############',(1.0-self.data['raise_counter']/5.0), 'RAISE COUNTER - PERCENT'
+            if 1.0 <= (self.aggro.AggroMod['raiseFreq'] + keep_hand*(1.0-self.data['raise_counter']/self.aggro.LooseMod['lq'])):
+                self.aggroRaise()
+            else:
+                if self.data['legalActions']['CALL']:
+                    self.responder.do('CALL', None)
+                else:
+                    self.responder.do('CHECK', None)
+            self.increment_raises()
+        else:
+            if self.data['legalActions']['CHECK']:
+                self.responder.do('CHECK', None)
+            else:
+                self.responder.do('FOLD', None)
+
+
+
+
+
+    # Betting function centered on using our current Aggro state
+    def aggroRaise(self):
     
+        legalActions = self.data['legalActions']
+        
+        if self.data['legalActions']['RAISE']['True']:
+            amount = self.aggro.AggroMod['raiseLevel'] * int(legalActions['RAISE']['MIN'])
+            if amount > int(legalActions['RAISE']['MAX']):
+                self.responder.do('RAISE',legalActions['RAISE']['MAX'])
+            else:
+                self.responder.do('RAISE',str(math.ceil(amount)))
+            
+        elif self.data['legalActions']['BET']['True']:
+            amount = self.aggro.AggroMod['raiseLevel'] * int(legalActions['BET']['MIN'])
+            if amount > int(legalActions['BET']['MAX']):
+                self.responder.do('BET',legalActions['BET']['MAX'])
+            else:
+                self.responder.do('BET',str(amount))
+        else:
+            self.responder.do('CALL',None)
+
+
+############################
+# JUNK FROM CLASS STRATEGY #
+############################
+    '''
+    ## Very basic card discarder - checks for best hand in pocket + flop
+    def discard_low(self):
+        holeCard1 = self.data['holeCard1']
+        holeCard2 = self.data['holeCard2']
+        holeCard3 = self.data['holeCard3']
+        boardCards = self.data['boardCards']
+        a = list(holeCard1)
+        b = list(holeCard2)
+        c = list(holeCard3)
+        
+        value_dict = {'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'T':10,'J':11,'Q':12,'K':13,'A':14}
+        inverted_value_dict = dict([[v,k] for k,v in value_dict.items()])
+        value_array = [value_dict[a[0]] ,value_dict[b[0]],value_dict[c[0]]]
+        value_array.sort()
+        lowcard = inverted_value_dict[value_array[0]]
+        analysis = self.analyzer.burn_which_card_simple(boardCards, holeCard1, holeCard2, holeCard3)
+        if analysis == 'lowcard':
+            #print a[0], b[0], c[0]
+            if a[0] == lowcard:
+                self.data['burnedCard_is'] = self.data['holeCard1']
+                self.data['selectedCard1'] = self.data['holeCard2']
+                self.data['selectedCard2'] = self.data['holeCard3']
+                self.responder.do('DISCARD', holeCard1)
+            elif b[0] == lowcard:
+                self.data['burnedCard_is'] = self.data['holeCard2']
+                self.data['selectedCard1'] = self.data['holeCard1']
+                self.data['selectedCard2'] = self.data['holeCard3']
+                self.responder.do('DISCARD', holeCard2)
+            elif c[0] == lowcard:
+                self.data['burnedCard_is'] = self.data['holeCard3']
+                self.data['selectedCard1'] = self.data['holeCard2']
+                self.data['selectedCard2'] = self.data['holeCard1']
+                self.responder.do('DISCARD', holeCard3)
+        else:
+            choices = { 1: holeCard1, 2: holeCard2, 3:holeCard3}
+            ar = [holeCard1,holeCard2, holeCard3]
+            self.data['burnedCard_is'] = ar.pop(analysis-1)
+            self.data['selectedCard1'] = ar.pop()
+            self.data['selectedCard2'] = ar.pop()
+            self.responder.do('DISCARD',choices[analysis])
+    '''
+ 
+
+
+    """
+
+
+    ########## Basic Betting Responses ############
+
+    # Will bet 'percent' of big blind (must have BET in legal actions)
+    def bet_percent(self):
+        
+        ##### percent is currently set to 300 #####
+        percent = 300
+        betPercent = str(percent*int(self.data['bb'])/100)
+        
+        if 'RAISE' in self.data['legalActions']:
+            self.responder.do('RAISE', betPercent)
+        elif 'BET' in self.data['legalActions']:
+            self.responder.do('BET', betPercent)
+
+    # Will raise minimum amount, or will go/call all in
+    def raise_min(self):
+        if 'RAISE' in self.data['legalActions']:
+            self.responder.do('RAISE', self.data['legalActions']['RAISE']['MIN'])
+        elif 'CALL' in self.data['legalActions']:
+            self.responder.do('CALL', None)
+    ###############################################
+    
+    """
+
+
     
 
 
 
 
-
+    """
     ############ Betting Strategies ###############
 
     # Basic pre-flop 3-betting based on button
@@ -266,14 +399,6 @@ class Strategy(object):
         else:
             #print 'Checking because we dont have the button and saw no raise'
             self.responder.do('CHECK', None)
-
-
-
-
-
-
-
-
     ## Test function for simple betting procedures
     def simple_betting(self):
         # get the last actions made
@@ -314,14 +439,6 @@ class Strategy(object):
                 return self.stats.nobutton.turn.read()
             if self.data['numBoardCards'] == 5:
                 return self.stats.nobutton.river.read()
-                
-                
-
-
-
-
-                
-                
                 
     # Strategy centered around moving to the opposite spectrum of the opponent
     def counter_betting(self):
@@ -369,78 +486,10 @@ class Strategy(object):
             else:
                 self.responder.do('CHECK', None)
  
+        """
 
-
-
-    def jeremy_betting(self):
-        print 'hello world it af asfsdaf'
-        if self.data['numBoardCards'] == 0:
-            self.reset_raises()
-        elif 'DEAL' in self.data['lastActions'][-1]:
-            self.reset_raises()
-        elif len(self.data['lastActions']) >= 2:
-            if 'DEAL' in self.data['lastActions'][-2]:
-                self.reset_raises()
-
-        lastActionsSplit = self.data['lastActionsSplit']
-        currentStats = self.setBettingStateStats()
-        
-        
-        unpredictableRoll = random.random()# not implemented yet
-        raiseRoll = random.random() # TODO: Why isn't this just random?
-        checkRoll = random.random()# Why use any random factors?
-        callRoll = random.random()
-        
-        # Will ignore the data unless 20 hands have gotten to that stage
-        if currentStats['hands'] > 20:
-            self.aggro.setStrategy(currentStats)
-        else:
-            self.aggro.AggroMod = self.aggro.aggro3
-            self.aggro.LooseMod = self.aggro.loose2
-        
-        # Check for EV against current keep_percent
-        keep_hand = self.keep_hand_check() # False or Equity
-        # Discard using the lowest EV
-        if self.data['legalActions']['DISCARD']:
-            self.discard_low()
-        elif keep_hand:
-            lock = False
-            print '###############',(1.0-self.data['raise_counter']/5.0), 'RAISE COUNTER - PERCENT'
-            if 1.0 <= (self.aggro.AggroMod['raiseFreq'] + keep_hand*(1.0-self.data['raise_counter']/self.aggro.LooseMod['lq'])):
-                self.aggroRaise()
-            else:
-                if self.data['legalActions']['CALL']:
-                    self.responder.do('CALL', None)
-                else:
-                    self.responder.do('CHECK', None)
-            self.increment_raises()
-        else:
-            if self.data['legalActions']['CHECK']:
-                self.responder.do('CHECK', None)
-            else:
-                self.responder.do('FOLD', None)
-            
-    def jeremyRaise(self):
-        
-        legalActions = self.data['legalActions']
-        
-        if self.data['legalActions']['RAISE']['True']:
-            amount = self.aggro.AggroMod['raiseLevel'] * int(legalActions['RAISE']['MIN'])
-            if amount > int(legalActions['RAISE']['MAX']):
-                self.responder.do('RAISE',legalActions['RAISE']['MAX'])
-            else:
-                self.responder.do('RAISE',str(math.ceil(amount)))
-        
-        elif self.data['legalActions']['BET']['True']:
-            amount = self.aggro.AggroMod['raiseLevel'] * int(legalActions['BET']['MIN'])
-            if amount > int(legalActions['BET']['MAX']):
-                self.responder.do('BET',legalActions['BET']['MAX'])
-            else:
-                self.responder.do('BET',str(amount))
-        else:
-            self.responder.do('CALL',None)
-
-
+    
+    """
     # Tight aggressive strategy
     def TAG(self):
     
@@ -492,34 +541,10 @@ class Strategy(object):
             self.responder.do('CALL',None)
 
 
-
-
-
-
-
-    # Betting function centered on using our current Aggro state
-    def aggroRaise(self):
-    
-        legalActions = self.data['legalActions']
-        
-        if self.data['legalActions']['RAISE']['True']:
-            amount = self.aggro.AggroMod['raiseLevel'] * int(legalActions['RAISE']['MIN'])
-            if amount > int(legalActions['RAISE']['MAX']):
-                self.responder.do('RAISE',legalActions['RAISE']['MAX'])
-            else:
-                self.responder.do('RAISE',str(math.ceil(amount)))
-            
-        elif self.data['legalActions']['BET']['True']:
-            amount = self.aggro.AggroMod['raiseLevel'] * int(legalActions['BET']['MIN'])
-            if amount > int(legalActions['BET']['MAX']):
-                self.responder.do('BET',legalActions['BET']['MAX'])
-            else:
-                self.responder.do('BET',str(amount))
-        else:
-            self.responder.do('CALL',None)
+        """
 
             
-            
+    """
 
     ## Test function: always calling, discarding lowest card
     def auto_call(self):
@@ -557,127 +582,91 @@ class Strategy(object):
         else:
             self.responder.do('CHECK', None)
 
+    """
 
 
 
 
-
-# Class to hold the aggro&loose modifiers for ourself
-class AggroModifiers(object):
-
-        def __init__(self,fields):
-            self.AggroMod = {
-            'raiseFreq' : None,
-            'raiseLevel': None,
-            'callFreq' : None,
-            'checkFreq' : None,
-            'unpredictable' : None}
-            
-            self.LooseMod = {
-            'keep_percent_preflop': None,
-            'keep_percent_flop': None,
-            'keep_percent_turn': None,
-            'keep_percent_river': None}
-    
-            self.aggro1 = {
-            'raiseFreq' : 0.45,
-            'raiseLevel': 1,
-            'callFreq' : 0.45,
-            'checkFreq' : 0.55,
-            'unpredictable' : 0.20}
-    
-            self.aggro2 = {
-            'raiseFreq' : 0.50,
-            'raiseLevel': 2,
-            'callFreq' : 0.50,
-            'checkFreq' : 0.50,
-            'unpredictable' : 0.20}
-    
-            self.aggro3 = {
-            'raiseFreq' : 0.55,
-            'raiseLevel': 3,
-            'callFreq' : 0.55,
-            'checkFreq' : 0.45,
-            'unpredictable' : 0.20}
-    
-            self.aggro4 = {
-            'raiseFreq' : 0.60,
-            'raiseLevel': 4,
-            'callFreq' : 0.60,
-            'checkFreq' : 0.40,
-            'unpredictable' : 0.20}
-    
-            self.loose1 = {
-            'keep_percent_preflop': 0.45,
-            'keep_percent_flop': 0.40,
-            'keep_percent_turn': 0.35,
-            'keep_percent_river': 0.30}
-            
-            self.loose2 = {
-            'keep_percent_preflop': 0.50,
-            'keep_percent_flop': 0.45,
-            'keep_percent_turn': 0.40,
-            'keep_percent_river': 0.35,'lq':5}
-            
-            self.loose3 = {
-            'keep_percent_preflop': 0.55,
-            'keep_percent_flop': 0.50,
-            'keep_percent_turn': 0.45,
-            'keep_percent_river': 0.40}
-    
-            self.loose4 = {
-            'keep_percent_preflop': 0.60,
-            'keep_percent_flop': 0.55,
-            'keep_percent_turn': 0.45,
-            'keep_percent_river': 0.40}
-    
-        def generate_exponential_strategies(self, currentStats):
-            aggro_sum = currentStats['aggroLevel']
-            loose_level = currentStats['looseLevel']
-            aggro_level = 50.0/(1.0+100*math.exp(-1.0*aggro_sum/0.65))
-            aggro_freq = -6.0
-            
-            raiseFreq = 0.5+.35/(1+100.0*math.exp(aggro_level/100.0*-15.0))
-            checkFreq = 1-raiseFreq
-            callFreq = raiseFreq
-            
-            raiseLevel = 1.0 + 4.0/(1.0+100.0*math.exp(aggro_level/100.0*-15.0))
-            
-            self.AggroMod = {
-            'raiseFreq' : raiseFreq,
-            'raiseLevel': raiseLevel,
-            'callFreq' : callFreq,
-            'checkFreq' : checkFreq,
-            'unpredictable' : 0.30}
-
-            adjust = 1/(1.0+100.0*math.exp(loose_level*-25.0))
-            pflop = 0.15*adjust+0.35
-            posflop = 0.15*adjust + 0.30
-            turn = 0.15*adjust + 0.25
-            river = 0.15*adjust + 0.20
-            loose_eq = 2.0+(3.0+math.cos(loose_level*200))/(1.0+100.0*math.exp(loose_level*-25.0))
-            
-            self.LooseMod = {
-            'keep_percent_preflop': pflop,
-            'keep_percent_flop': posflop,
-            'keep_percent_turn': turn,
-            'keep_percent_river': river,
-            'lq': loose_eq}
-            print '#################################################'
-
-            print aggro_level, raiseFreq, raiseLevel, '|', pflop
-        # Current sets our strategy to the opposite spectrum of opponent
-        def setStrategy(self,currentStats):
-            self.generate_exponential_strategies(currentStats)
+#######################
+# CRUFT AGGROMODIFIERE#
+#######################
 """        
+    
+    
+    def __init__(self,fields):
+        self.AggroMod = {
+        'raiseFreq' : None,
+        'raiseLevel': None,
+        'callFreq' : None,
+        'checkFreq' : None,
+        'unpredictable' : None}
+        
+        self.LooseMod = {
+        'keep_percent_preflop': None,
+        'keep_percent_flop': None,
+        'keep_percent_turn': None,
+        'keep_percent_river': None}
+        
+        self.aggro1 = {
+        'raiseFreq' : 0.45,
+        'raiseLevel': 1,
+        'callFreq' : 0.45,
+        'checkFreq' : 0.55,
+        'unpredictable' : 0.20}
+        
+        self.aggro2 = {
+        'raiseFreq' : 0.50,
+        'raiseLevel': 2,
+        'callFreq' : 0.50,
+        'checkFreq' : 0.50,
+        'unpredictable' : 0.20}
+        
+        self.aggro3 = {
+        'raiseFreq' : 0.55,
+        'raiseLevel': 3,
+        'callFreq' : 0.55,
+        'checkFreq' : 0.45,
+        'unpredictable' : 0.20}
+        
+        self.aggro4 = {
+        'raiseFreq' : 0.60,
+        'raiseLevel': 4,
+        'callFreq' : 0.60,
+        'checkFreq' : 0.40,
+        'unpredictable' : 0.20}
+        
+        self.loose1 = {
+        'keep_percent_preflop': 0.45,
+        'keep_percent_flop': 0.40,
+        'keep_percent_turn': 0.35,
+        'keep_percent_river': 0.30}
+        
+        self.loose2 = {
+        'keep_percent_preflop': 0.50,
+        'keep_percent_flop': 0.45,
+        'keep_percent_turn': 0.40,
+        'keep_percent_river': 0.35,'lq':5}
+        
+        self.loose3 = {
+        'keep_percent_preflop': 0.55,
+        'keep_percent_flop': 0.50,
+        'keep_percent_turn': 0.45,
+        'keep_percent_river': 0.40}
+        
+        self.loose4 = {
+        'keep_percent_preflop': 0.60,
+        'keep_percent_flop': 0.55,
+        'keep_percent_turn': 0.45,
+        'keep_percent_river': 0.40}
+
             self.currentStats = currentStats
-            
+    
             if self.currentStats['aggroLevel'] == 4:
-            
+    
                 self.AggroMod = self.aggro4
 
             if self.currentStats['aggroLevel'] == 3:
-            
+    
                 self.AggroMod = self.aggro3
                 
             if self.currentStats['aggroLevel'] == 2:
