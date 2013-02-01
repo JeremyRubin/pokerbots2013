@@ -77,7 +77,7 @@ class Player(object):
             
         #print self.fields, 'ffff'
             if action == "GETACTION":
-                self.strategy.counter_betting()
+                self.strategy.jeremy_betting()
                 print 'Our current Aggro Strategy: '+str(self.strategy.aggro.AggroMod)
                 print
                 print 'Our current Loose Strategy: '+str(self.strategy.aggro.LooseMod)

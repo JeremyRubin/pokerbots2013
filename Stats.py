@@ -436,7 +436,10 @@ class AggressionStats(object):
     # The actual algorithm for converting the stats to aggro/loose
     def setLevels(self,stats,scraper,actions):
     
-        aggrocalc = ((stats['raiser'][0] * self.raiserModifier * stats['raiser'][3]/scraper.fields['bb'])+(stats['three_bet'][0] * self.threeBetModifier * stats['three_bet'][3]/scraper.fields['bb'])+(stats['all_in'][0] * self.allInModifier)+(stats['cont_bet'][0] * self.cBetModifier * stats['cont_bet'][3] / scraper.fields['bb'])-(stats['call'][0] * self.callModifier))/stats['hands']/2
+        aggrocalc  =((stats['raiser'][2] * self.raiserModifier)+(stats['three_bet'][0] * self.threeBetModifier)+(stats['all_in'][0] * self.allInModifier)+(stats['cont_bet'][0] * self.cBetModifier ))
+        #((stats['raiser'][0] * self.raiserModifier)+(stats['three_bet'][0] * self.threeBetModifier)+(stats['all_in'][0] * self.allInModifier)+(stats['cont_bet'][0] * self.cBetModifier )-(stats['call'][0] * self.callModifier))/stats['hands']
+        #aggrocalc = 50/(100*math.exp(-xterm)+1)
+        #((stats['raiser'][0] * self.raiserModifier * stats['raiser'][3]/scraper.fields['bb'])+(stats['three_bet'][0] * self.threeBetModifier * stats['three_bet'][3]/scraper.fields['bb'])+(stats['all_in'][0] * self.allInModifier)+(stats['cont_bet'][0] * self.cBetModifier * stats['cont_bet'][3] / scraper.fields['bb'])-(stats['call'][0] * self.callModifier))/stats['hands']/2
             
             
         loosecalc = 1.0*(stats['hands'] - stats['fold'][0] - stats['our_fold'][0])/(1+stats['hands'] - (stats['our_fold'][0]))

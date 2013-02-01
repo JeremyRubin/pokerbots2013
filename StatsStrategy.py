@@ -11,7 +11,7 @@ class Strategy(object):
         self.data = fields
         self.stats = stats
         self.aggro = AggroModifiers(self.data)
-        
+        self.data['raise_counter'] = 0
     
     
     def set_data(self, data):
@@ -368,8 +368,20 @@ class Strategy(object):
                 self.responder.do('FOLD', None)
             else:
                 self.responder.do('CHECK', None)
+ 
+
+
 
     def jeremy_betting(self):
+        print 'hello world it af asfsdaf'
+        if self.data['numBoardCards'] == 0:
+            self.reset_raises()
+        elif 'DEAL' in self.data['lastActions'][-1]:
+            self.reset_raises()
+        elif len(self.data['lastActions']) >= 2:
+            if 'DEAL' in self.data['lastActions'][-2]:
+                self.reset_raises()
+
         lastActionsSplit = self.data['lastActionsSplit']
         currentStats = self.setBettingStateStats()
         
@@ -380,28 +392,28 @@ class Strategy(object):
         callRoll = random.random()
         
         # Will ignore the data unless 20 hands have gotten to that stage
-        if currentStats['hands'] < 20:
+        if currentStats['hands'] > 20:
+            self.aggro.setStrategy(currentStats)
+        else:
             self.aggro.AggroMod = self.aggro.aggro3
             self.aggro.LooseMod = self.aggro.loose2
         
-        else:
-            self.aggro.setStrategy(currentStats)
-        
         # Check for EV against current keep_percent
         keep_hand = self.keep_hand_check() # False or Equity
-        
         # Discard using the lowest EV
         if self.data['legalActions']['DISCARD']:
             self.discard_low()
         elif keep_hand:
-            if 1.0 <= (self.aggro.AggroMod['raiseFreq'] + keep_hand):
+            lock = False
+            print '###############',(1.0-self.data['raise_counter']/5.0), 'RAISE COUNTER - PERCENT'
+            if 1.0 <= (self.aggro.AggroMod['raiseFreq'] + keep_hand*(1.0-self.data['raise_counter']/self.aggro.LooseMod['lq'])):
                 self.aggroRaise()
             else:
                 if self.data['legalActions']['CALL']:
                     self.responder.do('CALL', None)
                 else:
                     self.responder.do('CHECK', None)
-        
+            self.increment_raises()
         else:
             if self.data['legalActions']['CHECK']:
                 self.responder.do('CHECK', None)
@@ -459,6 +471,25 @@ class Strategy(object):
                 self.responder.do('CHECK', None)
         
 
+    def looseAggroRaise(self, equity):
+        
+        legalActions = self.data['legalActions']
+        
+        if self.data['legalActions']['RAISE']['True']:
+            amount = self.aggro.AggroMod['raiseLevel'] * int(legalActions['RAISE']['MIN'])
+            if amount > int(legalActions['RAISE']['MAX']):
+                self.responder.do('RAISE',legalActions['RAISE']['MAX'])
+            else:
+                self.responder.do('RAISE',str(math.ceil(amount)))
+        
+        elif self.data['legalActions']['BET']['True']:
+            amount = self.aggro.AggroMod['raiseLevel']*equity* int(legalActions['BET']['MIN'])
+            if amount > int(legalActions['BET']['MAX']):
+                self.responder.do('BET',legalActions['BET']['MAX'])
+            else:
+                self.responder.do('BET',str(amount))
+        else:
+            self.responder.do('CALL',None)
 
 
 
@@ -586,7 +617,7 @@ class AggroModifiers(object):
             'keep_percent_preflop': 0.50,
             'keep_percent_flop': 0.45,
             'keep_percent_turn': 0.40,
-            'keep_percent_river': 0.35}
+            'keep_percent_river': 0.35,'lq':5}
             
             self.loose3 = {
             'keep_percent_preflop': 0.55,
@@ -601,14 +632,15 @@ class AggroModifiers(object):
             'keep_percent_river': 0.40}
     
         def generate_exponential_strategies(self, currentStats):
-            aggro_level = currentStats['aggroLevel']
+            aggro_sum = currentStats['aggroLevel']
             loose_level = currentStats['looseLevel']
-
+            aggro_level = 50.0/(1.0+100*math.exp(-1.0*aggro_sum/0.65))
             aggro_freq = -6.0
-        
+            
             raiseFreq = 0.5+.35/(1+100.0*math.exp(aggro_level/100.0*-15.0))
             checkFreq = 1-raiseFreq
             callFreq = raiseFreq
+            
             raiseLevel = 1.0 + 4.0/(1.0+100.0*math.exp(aggro_level/100.0*-15.0))
             
             self.AggroMod = {
@@ -618,17 +650,19 @@ class AggroModifiers(object):
             'checkFreq' : checkFreq,
             'unpredictable' : 0.30}
 
-            adjust = 0.15/(1.0+100.0*math.exp(loose_level*-25.0))
-            pflop = adjust+0.35
-            posflop = adjust + 0.30
-            turn = adjust + 0.25
-            river = adjust + 0.20
-
+            adjust = 1/(1.0+100.0*math.exp(loose_level*-25.0))
+            pflop = 0.15*adjust+0.35
+            posflop = 0.15*adjust + 0.30
+            turn = 0.15*adjust + 0.25
+            river = 0.15*adjust + 0.20
+            loose_eq = 2.0+(3.0+math.cos(loose_level*200))/(1.0+100.0*math.exp(loose_level*-25.0))
+            
             self.LooseMod = {
             'keep_percent_preflop': pflop,
             'keep_percent_flop': posflop,
             'keep_percent_turn': turn,
-            'keep_percent_river': river}
+            'keep_percent_river': river,
+            'lq': loose_eq}
             print '#################################################'
 
             print aggro_level, raiseFreq, raiseLevel, '|', pflop
