@@ -1,10 +1,10 @@
 POKERBOTS 2013 COMPETITION
 ==========================
 
-TEAM: JJR
+Team Name: JJR
 
-POKER TYPE: NO LIMIT CRAZY PINEAPPLE
+Poker Type: No Limit Crazy Pineapple Poker
 
-DEVELOPERS:
-JEREMY RUBIN
-JUSTIN MARTINEZ
+Developed by Jeremy Rubin and Justin Martinez
+
+Please check /Strategy.pdf to see how it works.
