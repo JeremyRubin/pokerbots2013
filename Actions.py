@@ -144,15 +144,3 @@ class Parser(object):
             self.fields['action'] = word[0]
             bytesLeft = word[1]
         return self.fields
-    # TODO:######################
-"""
-    def get_last_actions(self,lastActions):
-        i = 0
-        actionList = lastActions[:]
-        for action in lastActions:
-            actionSplit = action.split(':')
-            actionList[i] = actionSplit
-            i += 1
-        return actionList
-
-"""

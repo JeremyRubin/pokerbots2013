@@ -70,9 +70,8 @@ class AggroModifiers(object):
 
 class Strategy(object):
 
-    def __init__(self, responder, analyzer, fields, stats):
+    def __init__(self, responder, fields, stats):
         self.responder = responder
-        self.analyzer = analyzer
         self.data = fields
         self.stats = stats
         self.aggro = AggroModifiers(self.data)

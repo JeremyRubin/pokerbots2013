@@ -8,7 +8,6 @@ import pbots_calc
 from Stats import Stats
 import Actions
 import StatsStrategy
-import PyAnalyzer
 """
 Simple example pokerbot, written in python.
 
@@ -43,10 +42,9 @@ class Player(object):
         'potSize': None}
         
         self.respond = Actions.ActionResponder(s)
-        self.analysis = PyAnalyzer.Analyzer()
         self.parser = Actions.Parser(self.fields)
         self.stats = Stats() # load classes once
-        self.strategy = StatsStrategy.Strategy(self.respond, self.analysis, self.fields,self.stats)
+        self.strategy = StatsStrategy.Strategy(self.respond, self.fields,self.stats)
     def run(self, input_socket):
         # Get a file-object for reading packets from tde socket.
         # Using this ensures that you get exactly one packet per read.
