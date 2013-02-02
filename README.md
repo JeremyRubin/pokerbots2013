@@ -1,4 +1,10 @@
-pokerbots2013
-=============
+POKERBOTS 2013 COMPETITION
+==========================
 
-Our Pokerbot
+TEAM: JJR
+
+POKER TYPE: NO LIMIT CRAZY PINEAPPLE
+
+DEVELOPERS:
+JEREMY RUBIN
+JUSTIN MARTINEZ
